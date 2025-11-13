@@ -4,15 +4,15 @@
 
 
 @font-face {
-  font-family: 'amelyan';
-  src: url('/fonts/Amelyan.ttf') format('truetype');
+  font-family: 'playfair';
+  src: url('/fonts/PlayfairDisplay-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-size: larger;
 }
 
-.amelyan {
-  font-family: 'amelyan', sans-serif;
+.playfair {
+  font-family: 'playfair', sans-serif;
 }
 
 @font-face {
@@ -183,4 +183,29 @@
 }
 .backdrop-blur-sm {
   backdrop-filter: blur(4px);
+}
+
+.shine-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-button::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform: rotate(25deg);
+  animation: shine 2.5s infinite;
+}
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }

@@ -10,8 +10,8 @@ import CartNotification from './nopage/components/CartNotification'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Erroneous Gold',
-  description: 'Personalized name necklace company',
+  title: 'Ruveri Jewel',
+  description: 'A Jewelry company',
 }
 
 export default function RootLayout({ children }) {

@@ -53,14 +53,14 @@ export default function Home() {
       <Home1 />
       <Home6 />
 
-      <Products category="singlenamenecklace" title="Single Name Necklaces" />
+      {/* <Products category="singlenamenecklace" title="Single Name Necklaces" />
       <Products category="rakhi" title="Rakhi" />
       <Products category="couplenamenecklace" title="Couple Name Necklaces" />
       <Products category="keychain" title="Keychains" />
       <Products category="carcharam" title="Car Charam" />
       <Products category="skeychain" title="Single Name Keychain" />
       <Products category="ckeychain" title="Couple Name Keychain" />
-      <Products category="designerpendents" title="Designer Pendents" />
+      <Products category="designerpendents" title="Designer Pendents" /> */}
     </>
   );
 }

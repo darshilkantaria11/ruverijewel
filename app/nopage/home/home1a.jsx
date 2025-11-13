@@ -1,119 +1,55 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Image from 'next/image';
+import { ArrowUpRight } from 'lucide-react';
 
 export default function HeroSection() {
-  const [sparks, setSparks] = useState([]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSparks((prevSparks) => [
-        ...prevSparks,
-        { id: Math.random(), x: Math.random() * 100, y: Math.random() * 100 },
-      ]);
-      setTimeout(() => {
-        setSparks((prevSparks) => prevSparks.slice(1));
-      }, 2000);
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div className="relative flex flex-col items-center justify-center h-[45vh] lg:h-[60vh] bg-[#F8F5E9] text-[#1B4638] overflow-hidden bg-cover bg-center">
+    <section className="relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-screen bg-[url('/bg.webp')]  text-center px-6 overflow-hidden">
+      {/* Background silk texture (optional if you have one) */}
+      <div className="absolute inset-0 bg-cover bg-center opacity-20"></div>
 
-      {/* Floating Sparkles */}
-      {sparks.map((spark) => (
-        <motion.div
-          key={spark.id}
-          className="absolute w-2 h-2 bg-c4 rounded-full shadow-lg"
-          style={{ top: `${spark.y}%`, left: `${spark.x}%` }}
-          initial={{ opacity: 1, scale: 1 }}
-          animate={{ opacity: 0, scale: 2 }}
-          transition={{ duration: 2 }}
-        />
-      ))}
+      {/* Content */}
+      <div className="relative z-10 ">
+        <p className="text-sm tracking-[0.25em] text-[#d7c2a3] font-poppins uppercase mb-4">
+          Exquisite Craftsmanship
+        </p>
 
-      {/* Hero Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: 'easeOut' }}
-        className="relative z-10 flex flex-col items-center text-center mb-6"
-      >
-        <div className="mb-4 flex flex-col md:flex-row">
-          <motion.h1
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 1 }}
-            className="text-5xl md:text-8xl font-extrabold text-[#1B4638]"
-          >
-            WRITE IT.
-          </motion.h1>
+        <h1 className="text-4xl playfair lg:text-7xl font-playfair font-medium text-[#f4e9d5] leading-tight">
+          <span className="block"><span className='italic' >Unleash</span> the</span>
+          <span className="block">
+            shining{''}
+            <span className="inline-block align-middle">
+              <Image
+                src="/ring.png"
+                alt="Ring"
+                width={80}
+                height={80}
+                className="inline-block mx-2"
+              />
+            </span>{''}
+            beauty
+          </span>
+        </h1>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 1 }}
-            className="text-5xl md:text-8xl font-extrabold text-[#1B4638] px-2"
-          >
-            WEAR IT.
-          </motion.h1>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 1 }}
-            className="text-5xl md:text-8xl font-extrabold text-red-800"
-          >
-            LOVE IT.
-          </motion.h1>
-        </div>
-
-        {/* Tagline */}
-        <motion.p
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="text-sm md:text-xl text-gray-600 px-6"
-        >
-          <span className='text-c4 font-bold'>Erroneous Gold – Crafting Personalized Elegance </span>. Every piece tells a story, turning your name into a timeless treasure. Wear your identity with pride, designed with precision, passion, and a touch of luxury.
-        </motion.p>
-      </motion.div>
-
-      {/* 🚀 Buttons with Delay */}
-      {/* <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.5, duration: 1 }}
-        className="relative z-10 flex  md:mt-6  flex-row "
-      >
-       
-        <Link href="/shop">
-          <motion.div
-            className="px-8 py-4 bg-c4 text-c1 text-lg font-bold rounded-full   transition duration-100 m-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Shop Now
-          </motion.div>
-        </Link>
-
-       
-        <Link href="/about-us">
-          <motion.div
-
-            className="px-8 py-4 border-2 border-c4 text-lg font-bold rounded-full  text-c4   transition duration-100 m-2"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Learn More
-          </motion.div>
-        </Link>
-      </motion.div> */}
+        {/* CTA Button */}
+        <div className="mt-10 flex justify-center">
+  <button
+    className="group flex items-center gap-3 shine-button
+      bg-[url('/bgl.webp')] bg-cover bg-center bg-no-repeat 
+      border border-[#d7c2a3]/40 text-white font-semibold 
+      rounded-full px-6 py-3 text-sm font-poppins 
+      backdrop-blur-sm hover:bg-[#d7c2a3] 
+      transition-all duration-300"
+    style={{ backgroundSize: '100% auto' }}
+  >
+    Find a Store
+    <ArrowUpRight className="w-5 h-5" />
+  </button>
+</div>
 
 
-    </div>
+      </div>
+    </section>
   );
 }
