@@ -226,7 +226,7 @@ export default function Navbar() {
               onClick={handleUserClick}
               className="hover:scale-110 transform transition cursor-pointer relative"
             >
-              <FiUser className={`w-5 h-5 ${isScrolled ? "text-b3" : "text-white"}`} />
+              {/* <FiUser className={`w-5 h-5 ${isScrolled ? "text-b3" : "text-white"}`} /> */}
               <AnimatePresence>
                 {isLoggedIn && showUserPopup && (
                   <motion.div

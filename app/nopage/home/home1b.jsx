@@ -1,120 +1,85 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-export default function TopCategories() {
-  const allCategories = [
-    {
-      name: 'Single Name Necklaces',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/autum%20rose%201.webp',
-      slug: 'single-name-necklaces',
-      apiCategory: 'singlenamenecklace',
-    },
-    {
-      name: 'Rakhi',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/OM%20Name%20Rakhi%2001.webp',
-      slug: 'rakhi',
-      apiCategory: 'rakhi',
-    },
-    {
-      name: 'Couple Name Necklaces',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/autum%20rose%201.webp',
-      slug: 'couple-name-necklaces',
-      apiCategory: 'couplenamenecklace',
-    },
-    {
-      name: 'Keychains',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/OM%20Name%20Rakhi%2001.webp',
-      slug: 'keychains',
-      apiCategory: 'keychain',
-    },
-     {
-      name: 'Designer Pendents',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/Designer%20Pendent.webp',
-      slug: 'designerpendents',
-      apiCategory: 'designerpendents',
-    },
-     {
-      name: 'Single Name Keychains',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/Single%20Name%20Keychain.webp',
-      slug: 'singlenamekeychain',
-      apiCategory: 'singlenamekeychain',
-    },
-     {
-      name: 'Couple Name Keychains',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/Couple%20Name%20Keychain.webp',
-      slug: 'couplenamekeychain',
-      apiCategory: 'couplenamekeychain',
-    },
-     {
-      name: 'Car Charam',
-      image: 'https://raw.githubusercontent.com/erroneousgold/images/refs/heads/main/carcharm.webp',
-      slug: 'carcharam',
-      apiCategory: 'carcharam',
-    },
-  ]
+const slides = [
+  {
+    title: "Premium Grade",
+    subtitle: "Gold Plated Ring",
+    image: "/ringbox.webp", // change this to your actual image
+    link: "/rings",
+  },
+  {
+    title: "Premium Grade",
+    subtitle: "Gold Plated Bracelet",
+    image: "/ringbox.webp",
+    link: "/bracelets",
+  },
+  {
+    title: "Luxury",
+    subtitle: "Diamond Necklace",
+    image: "/ringbox.webp",
+    link: "/necklace",
+  },
+];
 
-  const [visibleCategories, setVisibleCategories] = useState([])
+export default function HeroShowcaseSlider() {
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const fetchLiveCategories = async () => {
-      const key = process.env.NEXT_PUBLIC_API_KEY // optional: remove if not needed on frontend
-      const promises = allCategories.map(async (cat) => {
-        const res = await fetch(`/api/products?category=${cat.apiCategory}&limit=1`, {
-          headers: {
-            'x-api-key': key || '', // if required
-          },
-        })
-        const data = await res.json()
-        return data.length > 0 ? cat : null
-      })
-
-      const results = await Promise.all(promises)
-      setVisibleCategories(results.filter(Boolean))
-    }
-
-    fetchLiveCategories()
-  }, [])
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % slides.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <section className="py-10 px-4 md:px-16">
-      <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-10 tracking-wide">
-        TOP CATEGORIES
-      </h2>
+    <div
+  className="w-full h-[420px] lg:h-[500px] flex justify-center items-center 
+             bg-[radial-gradient(circle_at_center,_#804c31_0%,_#3d1b10_40%,_#190801_100%)]
+             text-white overflow-hidden playfair border-b border-b-amber-900 "
+>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col items-center"
+        >
+          {/* TEXT */}
+          <p className="text-sm text-b3 mb-1">{slides[index].title}</p>
+          <h2 className="text-2xl md:text-3xl font-semibold mb-6">
+            {slides[index].subtitle}
+          </h2>
 
-      <div
-        className={`gap-8 ${visibleCategories.length < 4
-            ? 'flex flex-wrap justify-center'
-            : 'grid grid-cols-2 md:grid-cols-4 justify-items-center'
-          }`}
-      >
+          {/* IMAGE with link */}
+          <Link href={slides[index].link}>
+            <motion.img
+              src={slides[index].image}
+              alt={slides[index].subtitle}
+              className="w-52  md:w-80 drop-shadow-xl cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+            />
+          </Link>
 
-        {visibleCategories.map((category, index) => (
-          <motion.div
-            key={category.slug}
-            className="text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1, ease: 'easeOut' }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <Link href={`/${category.slug}`}>
-              <div className="w-40 h-40 lg:w-64 lg:h-64 rounded-full border border-gray-200 overflow-hidden mx-auto shadow-md cursor-pointer">
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="w-full h-full object-cover transition duration-300"
-                />
-              </div>
-              <p className="mt-4 text-sm md:text-base font-medium tracking-widest text-gray-800 uppercase">
-                {category.name}
-              </p>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  )
+          {/* DOTS */}
+          {/* <div className="flex gap-2 mt-6">
+            {slides.map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 w-2 rounded-full transition-all ${
+                  i === index ? "bg-yellow-400" : "bg-white/30"
+                }`}
+              ></div>
+            ))}
+          </div> */}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }

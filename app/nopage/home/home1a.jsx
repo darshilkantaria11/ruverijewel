@@ -2,20 +2,25 @@
 
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
+import Side1 from "./home1b"
+import Side2 from "./home1c"
 
 export default function HeroSection() {
   return (
-    <section className="relative flex flex-col items-center justify-center min-h-[50vh] md:min-h-screen bg-[url('/bg.webp')]  text-center px-6 overflow-hidden">
+    <section 
+  className="flex flex-col lg:flex-row justify-center min-h-[50vh] md:min-h-screen bg-[url('/bg.webp')] bg-no-repeat bg-cover bg-top text-center px-6 overflow-hidden"
+>
+
       {/* Background silk texture (optional if you have one) */}
-      <div className="absolute inset-0 bg-cover bg-center opacity-20"></div>
+      {/* <div className="absolute inset-0 bg-cover bg-center opacity-20"></div> */}
 
       {/* Content */}
-      <div className="relative z-10 ">
+      <div className="relative z-10 lg:w-2/3 mt-28">
         <p className="text-sm tracking-[0.25em] text-[#d7c2a3] font-poppins uppercase mb-4">
           Exquisite Craftsmanship
         </p>
 
-        <h1 className="text-4xl playfair lg:text-7xl font-playfair font-medium text-[#f4e9d5] leading-tight">
+        <h1 className="text-4xl playfair lg:text-8xl font-playfair font-medium text-[#f4e9d5] leading-tight">
           <span className="block"><span className='italic' >Unleash</span> the</span>
           <span className="block">
             shining{''}
@@ -34,21 +39,25 @@ export default function HeroSection() {
 
         {/* CTA Button */}
         <div className="mt-10 flex justify-center">
-  <button
-    className="group flex items-center gap-3 shine-button
+          <button
+            className="group flex items-center gap-3 shine-button
       bg-[url('/bgl.webp')] bg-cover bg-center bg-no-repeat 
       border border-[#d7c2a3]/40 text-white font-semibold 
       rounded-full px-6 py-3 text-sm font-poppins 
       backdrop-blur-sm hover:bg-[#d7c2a3] 
       transition-all duration-300"
-    style={{ backgroundSize: '100% auto' }}
-  >
-    Find a Store
-    <ArrowUpRight className="w-5 h-5" />
-  </button>
-</div>
+            style={{ backgroundSize: '100% auto' }}
+          >
+            Find a Store
+            <ArrowUpRight className="w-5 h-5" />
+          </button>
+        </div>
 
 
+      </div>
+      <div className="flex flex-col lg:w-1/3 mt-20">
+        <Side1/>
+        <Side2/>
       </div>
     </section>
   );

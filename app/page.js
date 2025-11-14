@@ -1,5 +1,5 @@
 import Home1 from "./nopage/home/home1a";
-import Home6 from "./nopage/home/home1b";
+import Home2 from "./nopage/home/home1b";
 import Products from "./nopage/home/Products";
 
 export const metadata = {
@@ -50,8 +50,9 @@ export const metadata = {
 export default function Home() {
   return (
     <>
-      <Home1 />
-      <Home6 />
+  
+      <Home1  />
+    
 
       {/* <Products category="singlenamenecklace" title="Single Name Necklaces" />
       <Products category="rakhi" title="Rakhi" />
