@@ -23,58 +23,7 @@
   font-size: larger;
 }
 
-.cookie {
-  font-family: 'cookie', sans-serif;
-}
 
-@font-face {
-  font-family: 'nexa';
-  src: url('/fonts/NexaRustScriptL-0.otf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-size: larger;
-}
-
-.nexa {
-  font-family: 'nexa', sans-serif;
-}
-
-
-@font-face {
-  font-family: 'autumnchant';
-  src: url('/fonts/AUTUMNCHANT.OTF') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-size: larger;
-}
-
-.autumnchant {
-  font-family: 'autumnchant', sans-serif;
-}
-
-@font-face {
-  font-family: 'candlescript';
-  src: url('/fonts/CANDLESCRIPTDEMOVERSION.OTF') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-size: larger;
-}
-
-.candlescript {
-  font-family: 'candlescript', sans-serif;
-}
-
-@font-face {
-  font-family: 'milkshake';
-  src: url('/fonts/MILKSHAKE.TTF') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-size: larger;
-}
-
-.milkshake {
-  font-family: 'milkshake', sans-serif;
-}
 
 
 @keyframes scroll {
@@ -209,3 +158,34 @@
     left: 100%;
   }
 }
+
+/* Add this at the bottom of globals.css */
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* IE, Edge, Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth scroll */
+.scrollbar-hide {
+  scroll-behavior: smooth;
+}
+
+/* AUTO SCROLL ANIMATION */
+@keyframes autoScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Apply scrolling animation */
+.auto-scroll {
+  animation: autoScroll 25s linear infinite;
+}
+

@@ -37,9 +37,9 @@ export default function HeroShowcaseSlider() {
 
   return (
     <div
-  className="w-full h-[420px] lg:h-[500px] flex justify-center items-center 
-             bg-[radial-gradient(circle_at_center,_#804c31_0%,_#3d1b10_40%,_#190801_100%)]
-             text-white overflow-hidden playfair border-b border-b-amber-900 "
+  className="w-full h-[350px] lg:h-[500px] flex justify-center items-center 
+             bg-[radial-gradient(circle_at_center,_#9c0913_0%,_#5c0003_50%,_#4d0001_100%)]
+             text-white overflow-hidden playfair border-b border-b-red-800 "
 >
       <AnimatePresence mode="wait">
         <motion.div

@@ -96,8 +96,8 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed w-full z-50 transition-all duration-500 ${isScrolled
-          ? "bg-white/10 backdrop-blur-md text-b3 shadow-sm font-normal "
-          : "bg-transparent text-white font-extralight"
+        ? "bg-white/10 backdrop-blur-md text-b3 shadow-sm font-normal "
+        : "bg-transparent text-white font-extralight"
         }`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
@@ -114,7 +114,19 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation Links - Center */}
-          <div className="hidden md:flex items-center space-x-8 mx-auto">
+          <motion.div
+            className="hidden md:flex items-center space-x-8"
+            animate={{
+              x: showSearch ? -80 : 0,   // slide left 180px
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 120,
+              damping: 18,
+            }}
+          >
+
+
             <Link
               href="/rings"
               className="hover:scale-110 transform transition "
@@ -163,7 +175,7 @@ export default function Navbar() {
             >
               MEN COLLECTION
             </Link>
-          </div>
+          </motion.div>
 
           {/* Right Side - Search, User, Cart */}
           <div className="flex items-center space-x-4">
@@ -263,9 +275,9 @@ export default function Navbar() {
               aria-label="Toggle Menu"
             >
               {isOpen ? (
-                <FiX className={`w-5 h-5 ${isScrolled ? "text-black" : "text-white"}`} />
+                <FiX className={`w-5 h-5 ${isScrolled ? "text-white" : "text-white"}`} />
               ) : (
-                <FiMenu className={`w-5 h-5 ${isScrolled ? "text-black" : "text-white"}`} />
+                <FiMenu className={`w-5 h-5 ${isScrolled ? "text-white" : "text-white"}`} />
               )}
             </button>
           </div>
@@ -308,7 +320,7 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center text-b1 text-3xl tracking-wide underline underline-offset-8 hover:text-white/80 transition-all group"
+                  className="flex items-center justify-center font-normal text-b1 text-3xl tracking-wide underline underline-offset-8 hover:text-white/80 transition-all group"
                 >
                   {item.label}
                   <ChevronRight

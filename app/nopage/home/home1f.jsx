@@ -6,17 +6,16 @@ import Link from "next/link";
 
 export default function DesignerCard() {
     return (
-        <div className="w-full h-[350px] lg:h-[500px]  bg-[url('/back1.webp')] overflow-hidden relative p-12 playfair min-h-[400px]">
+        <div className="w-full h-[350px] lg:h-[450px] mt-10  bg-red-200/20 overflow-hidden relative p-8 playfair">
 
             {/* TOP CONTENT */}
             <div className="flex items-start justify-between relative z-10">
                 <div>
                     <h3 className="text-lg md:text-3xl font-light text-b3 leading-snug text-left">
-                        Perfect Gifts, <br />Crafted With Care
+                        Bracelets
                     </h3>
                 </div>
 
-                {/* Arrow Button */}
                 <Link
                     href="/products"
                     className="w-16 h-16 border border-b3 rounded-full 
@@ -27,14 +26,14 @@ export default function DesignerCard() {
                 </Link>
             </div>
 
-            {/* ONLY ONE IMAGE AT THE BOTTOM */}
-            <div className="absolute bottom-0 left-0 w-full z-0">
+            {/* IMAGE FIXED WITHOUT CROPPING */}
+            <div className="absolute bottom-0 left-0 w-full flex justify-center z-0">
                 <Image
-                    src="/gift.png"
+                    src="/ringmodel1.webp"
                     alt="Jewellery Gift"
-                    width={700}
-                    height={700}
-                    className="w-full object-contain pointer-events-none select-none"
+                    width={600}
+                    height={600}
+                    className="max-h-[250px] md:max-h-[330px] object-contain"
                 />
             </div>
         </div>
