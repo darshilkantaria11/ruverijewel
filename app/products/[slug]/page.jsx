@@ -259,11 +259,11 @@ const PriceBreakdown = ({ product }) => {
                         <div className="font-medium">Silver Product Price</div>
                         <div className="text-xs text-gray-500">{product.purity} — fixed price</div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">₹{totalPrice.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</td>
                     </tr>
                     <tr className="bg-gray-100">
                       <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
-                      <td className="px-4 py-3"><div className="text-lg font-bold text-black">₹{totalPrice.toLocaleString()}</div></td>
+                      <td className="px-4 py-3"><div className="text-lg font-bold text-black">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</div></td>
                     </tr>
                   </tbody>
                 </table>
@@ -359,7 +359,7 @@ const PriceBreakdown = ({ product }) => {
                   <tr className="bg-gray-100">
                     <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
                     <td className="px-4 py-3 text-sm text-gray-600">Metal Cost + Making Charges</td>
-                    <td className="px-4 py-3"><div className="text-lg font-bold text-black">₹{totalPrice.toLocaleString()}</div></td>
+                    <td className="px-4 py-3"><div className="text-lg font-bold text-black">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</div></td>
                   </tr>
                 </tbody>
               </table>
@@ -526,7 +526,8 @@ export default function ProductDetail() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/products/fetch/${slug}`, { headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY } });
+        const currency = localStorage.getItem("currency") || "INR";
+        const res = await fetch(`/api/products/fetch/${slug}?currency=${currency}`, { headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY } });
         if (!res.ok) throw new Error(`Failed to fetch product: ${res.status}`);
         const data = await res.json();
         setProduct(data);
@@ -692,7 +693,7 @@ export default function ProductDetail() {
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
-                ₹{totalPrice.toLocaleString()}
+                {product.currencySymbol || "₹"}{totalPrice.toLocaleString()}
               </p>
               <ConnectWithExpert product={product} />
             </div>

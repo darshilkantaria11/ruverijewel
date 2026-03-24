@@ -17,48 +17,49 @@ const Skeleton = ({ className }) => (
 export default function CartPage() {
     const cartContext = useCart();
 
-  const [products, setProducts] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [showCheckoutPopup, setShowCheckoutPopup] = useState(false);
+    const [products, setProducts] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [showCheckoutPopup, setShowCheckoutPopup] = useState(false);
 
-  // ✅ Safe fallback (no destructuring crash)
-  const cart = cartContext?.cart || {};
-  const updateQuantity = cartContext?.updateQuantity;
-  const getTotalItems = cartContext?.getTotalItems;
+    // ✅ Safe fallback (no destructuring crash)
+    const cart = cartContext?.cart || {};
+    const updateQuantity = cartContext?.updateQuantity;
+    const getTotalItems = cartContext?.getTotalItems;
 
-  const cartItems = Object.values(cart);
-// chatgpt suggestion
-// useEffect(() => {
-//     if (!cartItems.length) {
-//       setLoading(false);
-//       return;
-//     }
+    const cartItems = Object.values(cart);
+    // chatgpt suggestion
+    // useEffect(() => {
+    //     if (!cartItems.length) {
+    //       setLoading(false);
+    //       return;
+    //     }
 
-//     const fetchProducts = async () => {
-//       try {
-//         const productData = {};
-//         for (const item of cartItems) {
-//           const res = await fetch(`/api/products/fetch/${item.id}`);
-//           const data = await res.json();
-//           productData[item.id] = data;
-//         }
-//         setProducts(productData);
-//       } catch (err) {
-//         console.error(err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
+    //     const fetchProducts = async () => {
+    //       try {
+    //         const productData = {};
+    //         for (const item of cartItems) {
+    //           const res = await fetch(`/api/products/fetch/${item.id}`);
+    //           const data = await res.json();
+    //           productData[item.id] = data;
+    //         }
+    //         setProducts(productData);
+    //       } catch (err) {
+    //         console.error(err);
+    //       } finally {
+    //         setLoading(false);
+    //       }
+    //     };
 
-//     fetchProducts();
-//   }, [cartItems]);
+    //     fetchProducts();
+    //   }, [cartItems]);
     // my original code 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 const productData = {};
                 for (const item of cartItems) {
-                    const res = await fetch(`/api/products/fetch/${item.id}`, {
+                    const currency = localStorage.getItem("currency") || "INR";
+                    const res = await fetch(`/api/products/fetch/${item.id}?currency=${currency}`, {
                         headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY },
                     });
                     const data = await res.json();
@@ -74,7 +75,7 @@ export default function CartPage() {
 
         if (cartItems.length > 0) fetchProducts();
     }, [cart]);
-      if (!cartContext) return null;
+    if (!cartContext) return null;
 
     // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -174,7 +175,7 @@ export default function CartPage() {
 
                                             <div className="mt-4 flex justify-between items-center">
                                                 {item.price ? (
-                                                    <p className="text-xl font-bold text-black">Rs. {item.price * item.quantity}</p>
+                                                    <p className="text-xl font-bold text-black">{products[item.id]?.currencySymbol || "₹"}{(products[item.id]?.totalPrice || item.price) * item.quantity}</p>
                                                 ) : (
                                                     <Skeleton className="h-6 w-20" />
                                                 )}
@@ -230,7 +231,7 @@ export default function CartPage() {
                                                         <Skeleton className="h-6 w-64 mb-2" />
                                                     )}
 
-                                                   
+
 
                                                     {item.selectedChain && (
                                                         <>
@@ -250,7 +251,7 @@ export default function CartPage() {
 
                                             <div className="mt-4 flex justify-between items-center">
                                                 {item.price ? (
-                                                    <p className="text-xl font-bold text-black">Rs. {item.price * item.quantity}</p>
+                                                    <p className="text-xl font-bold text-black">{products[item.id]?.currencySymbol || "₹"}{(products[item.id]?.totalPrice || item.price) * item.quantity}</p>
                                                 ) : (
                                                     <Skeleton className="h-6 w-20" />
                                                 )}
@@ -285,7 +286,7 @@ export default function CartPage() {
                                 <div className="border-t pt-3 mt-3">
                                     <div className="flex justify-between text-lg font-bold text-gray-800">
                                         <span>Estimated Total</span>
-                                        <span>Rs. {subtotal}</span>
+                                        <span>{Object.values(products)[0]?.currencySymbol || "₹"}{subtotal}</span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
                                         Taxes, discounts, and shipping calculated at checkout

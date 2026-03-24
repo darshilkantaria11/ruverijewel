@@ -26,7 +26,8 @@ export default function PaymentStep({ userData }) {
 
       try {
         const pricePromises = cartItems.map(async (item) => {
-          const res = await fetch(`/api/products/fetch/${item.id}`, {
+          const currency = localStorage.getItem("currency") || "INR";
+          const res = await fetch(`/api/products/fetch/${item.id}?currency=${currency}`, {
             headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY },
           });
           if (!res.ok) throw new Error(`Failed to fetch price for ${item.productName}`);
@@ -112,7 +113,7 @@ export default function PaymentStep({ userData }) {
       // ── Razorpay checkout ──────────────────────────────────────────────────
       const razorpayOptions = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-        amount: grandTotal * 100,
+        amount: grandTotal * 100, // ← leave this as-is, Razorpay always charges in INR paise
         currency: "INR",
         name: "Ruveri Jewel",
         description: "Order Payment",
@@ -270,7 +271,7 @@ export default function PaymentStep({ userData }) {
                   </p>
                   <div className="flex items-center gap-2">
                     <span className={`font-semibold ${priceChanged ? "text-black" : "text-gray-800"}`}>
-                      ₹{currentPrice}
+                      {productPrices[item.id]?.productData?.currencySymbol || "₹"}{currentPrice}
                     </span>
                     {priceChanged && <span className="text-xs text-green-600">(Updated)</span>}
                   </div>
@@ -284,15 +285,15 @@ export default function PaymentStep({ userData }) {
         <div className="border-t pt-3 space-y-1 text-gray-700">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span>₹{subtotal}</span>
+            <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{subtotal}</span>
           </div>
           <div className="flex justify-between">
             <span>Shipping</span>
-            {shippingCharge > 0 ? <span>₹{shippingCharge}</span> : <span className="text-green-600">Free</span>}
+            {shippingCharge > 0 ? <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{shippingCharge}</span> : <span className="text-green-600">Free</span>}
           </div>
           <div className="flex justify-between font-semibold text-base text-gray-900 pt-2 border-t">
             <span>Total</span>
-            <span>₹{grandTotal}</span>
+            <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{grandTotal}</span>
           </div>
         </div>
       </div>

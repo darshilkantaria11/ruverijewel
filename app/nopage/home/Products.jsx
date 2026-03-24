@@ -118,7 +118,7 @@ export default function Products({ category, title }) {
       if (user?.email) {
         const cached = localStorage.getItem("wishlist");
         if (cached) {
-          try { setWishlist(JSON.parse(cached).map(id => String(id))); } catch {}
+          try { setWishlist(JSON.parse(cached).map(id => String(id))); } catch { }
         }
         await fetchWishlist(user.email);
       } else {
@@ -205,7 +205,8 @@ export default function Products({ category, title }) {
 
   const fetchProducts = async () => {
     try {
-      let url = `/api/products?page=${page}&limit=${limit}&category=${encodeURIComponent(category)}`;
+      const currency = localStorage.getItem("currency") || "INR";
+      let url = `/api/products?page=${page}&limit=${limit}&category=${encodeURIComponent(category)}&currency=${currency}`;
       if (activePurityParam) url += `&purity=${encodeURIComponent(activePurityParam)}`;
 
       const res = await fetch(url, {
@@ -283,11 +284,10 @@ export default function Products({ category, title }) {
                     <button
                       key={purity}
                       onClick={() => togglePurity(purity)}
-                      className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${
-                        selectedPurities.includes(purity)
+                      className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${selectedPurities.includes(purity)
                           ? "bg-black text-white border-black"
                           : "bg-white text-black border-gray-300 hover:border-black"
-                      }`}
+                        }`}
                     >
                       {purity}
                     </button>
@@ -307,8 +307,8 @@ export default function Products({ category, title }) {
                     <span>
                       {selectedFilter === "price_low_high" ? "Price: Low → High"
                         : selectedFilter === "price_high_low" ? "Price: High → Low"
-                        : selectedFilter === "alphabetical" ? "A → Z"
-                        : "Filter"}
+                          : selectedFilter === "alphabetical" ? "A → Z"
+                            : "Filter"}
                     </span>
                     <svg
                       className={`w-4 h-4 transition-transform ${isFilterOpen ? "rotate-180" : ""}`}
@@ -327,14 +327,13 @@ export default function Products({ category, title }) {
                       {[
                         { key: "price_low_high", label: "Price: Low to High" },
                         { key: "price_high_low", label: "Price: High to Low" },
-                        { key: "alphabetical",   label: "Alphabetical Order" },
+                        { key: "alphabetical", label: "Alphabetical Order" },
                       ].map(({ key, label }) => (
                         <button
                           key={key}
                           onClick={() => { setSelectedFilter(key); setIsFilterOpen(false); }}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                            selectedFilter === key ? "bg-gray-50 font-medium" : ""
-                          }`}
+                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${selectedFilter === key ? "bg-gray-50 font-medium" : ""
+                            }`}
                         >
                           {label}
                         </button>
@@ -362,11 +361,10 @@ export default function Products({ category, title }) {
                   <button
                     key={purity}
                     onClick={() => togglePurity(purity)}
-                    className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${
-                      selectedPurities.includes(purity)
+                    className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${selectedPurities.includes(purity)
                         ? "bg-black text-white border-black"
                         : "bg-white text-black border-gray-300 hover:border-black"
-                    }`}
+                      }`}
                   >
                     {purity}
                   </button>
@@ -459,7 +457,7 @@ export default function Products({ category, title }) {
                         <h2 className="text-sm lg:text-lg font-semibold text-black">{product.productName}</h2>
                         <div className="flex justify-start items-center">
                           <p className="text-md lg:text-xl text-black font-semibold">
-                            ₹{(product.totalPrice ?? 0).toLocaleString()}
+                            {product.currencySymbol || "₹"}{(product.totalPrice ?? 0).toLocaleString()}
                           </p>
                         </div>
                       </div>
