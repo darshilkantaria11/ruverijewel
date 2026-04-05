@@ -48,6 +48,19 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
   const [panelOpen, setPanelOpen] = useState(false);
   const [highlightWhatsapp, setHighlightWhatsapp] = useState(false);
 
+  const triggerWhatsappHighlight = () => {
+    setHighlightWhatsapp(true);
+    setTimeout(() => setHighlightWhatsapp(false), 3000);
+    document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  // ✅ useEffect is now BEFORE the early return — no rules-of-hooks violation
+  useEffect(() => {
+    const handler = () => triggerWhatsappHighlight();
+    window.addEventListener("highlight-whatsapp", handler);
+    return () => window.removeEventListener("highlight-whatsapp", handler);
+  }, []);
+
   if (category !== "rings" && category !== "bangles") return null;
 
   const sizes = category === "rings"
@@ -62,23 +75,7 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
     setPanelOpen(false);
   };
 
-  // All sizes are Make to Order
   const isMakeToOrder = !!selectedSize;
-
-  // Called by parent when user tries to add to cart / buy now with a MTO size
-  const triggerWhatsappHighlight = () => {
-    setHighlightWhatsapp(true);
-    setTimeout(() => setHighlightWhatsapp(false), 3000);
-    document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
-
-  // Expose triggerWhatsappHighlight via ref-like pattern using a data attribute trick
-  // We'll use a custom event instead
-  useEffect(() => {
-    const handler = () => triggerWhatsappHighlight();
-    window.addEventListener("highlight-whatsapp", handler);
-    return () => window.removeEventListener("highlight-whatsapp", handler);
-  }, []);
 
   return (
     <>
