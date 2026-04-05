@@ -1,5 +1,4 @@
 "use client";
-
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -8,8 +7,9 @@ import Checkout from "../../nopage/checkout/checkout";
 import { XMarkIcon, HeartIcon as HeartOutline, ShareIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
 import { useGoogleAuth } from "../../nopage/components/useGoogleAuth";
+import Link from "next/link";
 
-/* ---------- PRICE HELPERS ---------- */
+/* ---------- PRICE HELPERS (INR only — for breakdown) ---------- */
 const getPurityMultiplier = (metal, purity) => {
   const goldMap = { "24K": 1, "22K": 0.916, "20K": 0.833, "18K": 0.78, "14K": 0.615, "9K": 0.415 };
   const silverMap = { "999 Silver": 1, "950 Silver": 0.95, "925 Silver": 0.925, "900 Silver": 0.9, "800 Silver": 0.8 };
@@ -18,7 +18,8 @@ const getPurityMultiplier = (metal, purity) => {
   return 1;
 };
 
-const calculateTotalPrice = (product) => {
+// Used only for cart price (always INR) — display price comes from API (converted)
+const calculateTotalPriceINR = (product) => {
   if (!product) return 0;
   try {
     if (product.metal === "silver") return Number(product.metalPrice) || 0;
@@ -42,9 +43,10 @@ const BANGLE_SIZE_MM = {
   "2.6": "66.0mm", "2.7": "68.6mm", "2.8": "71.1mm", "2.9": "73.7mm", "2.10": "76.2mm",
 };
 
-/* ---------- SIZE SELECTOR COMPONENT ---------- */
-const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
+/* ---------- SIZE SELECTOR ---------- */
+const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsappUrl }) => {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [highlightWhatsapp, setHighlightWhatsapp] = useState(false);
 
   if (category !== "rings" && category !== "bangles") return null;
 
@@ -59,6 +61,24 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
     onSelectSize(String(size));
     setPanelOpen(false);
   };
+
+  // All sizes are Make to Order
+  const isMakeToOrder = !!selectedSize;
+
+  // Called by parent when user tries to add to cart / buy now with a MTO size
+  const triggerWhatsappHighlight = () => {
+    setHighlightWhatsapp(true);
+    setTimeout(() => setHighlightWhatsapp(false), 3000);
+    document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  // Expose triggerWhatsappHighlight via ref-like pattern using a data attribute trick
+  // We'll use a custom event instead
+  useEffect(() => {
+    const handler = () => triggerWhatsappHighlight();
+    window.addEventListener("highlight-whatsapp", handler);
+    return () => window.removeEventListener("highlight-whatsapp", handler);
+  }, []);
 
   return (
     <>
@@ -82,7 +102,6 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
           )}
         </div>
 
-        {/* Compact row: current selection + button */}
         <div className="flex items-center gap-3">
           {selectedSize ? (
             <div className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-lg text-sm font-medium">
@@ -106,6 +125,49 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
           </button>
         </div>
 
+        {/* Make to Order notice + WhatsApp CTA */}
+        {isMakeToOrder && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            id="mto-whatsapp-banner"
+            className={`rounded-lg border px-4 py-3 transition-all duration-300 ${
+              highlightWhatsapp
+                ? "border-[#25D366] bg-[#25D366]/10 ring-2 ring-[#25D366] ring-offset-1"
+                : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <span className={`text-base mt-0.5 flex-shrink-0 ${highlightWhatsapp ? "text-[#25D366]" : "text-amber-500"}`}>ⓘ</span>
+              <div className="flex-1">
+                <p className={`text-xs font-semibold mb-1 ${highlightWhatsapp ? "text-[#25D366]" : "text-amber-800"}`}>
+                  This is a Make to Order item
+                </p>
+                <p className={`text-xs leading-relaxed mb-2 ${highlightWhatsapp ? "text-green-800" : "text-amber-700"}`}>
+                  Made-to-order items cannot be added directly to cart. Please contact us on WhatsApp to place your order for size <strong>{selectedSize}</strong>.
+                </p>
+                {whatsappUrl && (
+                  <Link
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                      highlightWhatsapp
+                        ? "bg-[#25D366] text-white shadow-lg shadow-green-200 scale-105"
+                        : "border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white"
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    Order on WhatsApp → Size {selectedSize}
+                  </Link>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {sizeError && (
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
             className="text-sm text-red-500 flex items-center gap-1.5">
@@ -118,20 +180,17 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
       <AnimatePresence>
         {panelOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/50 z-40"
               onClick={() => setPanelOpen(false)}
             />
-            {/* Panel */}
             <motion.div
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 26, stiffness: 260 }}
               className="fixed left-0 top-0 h-full w-full max-w-sm bg-white z-50 shadow-2xl flex flex-col"
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
                 <div>
                   <h3 className="text-lg font-semibold text-black">Select {label}</h3>
@@ -145,7 +204,14 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
                 </button>
               </div>
 
-              {/* Grid */}
+              {/* All sizes are Make to Order — info banner inside panel */}
+              <div className="mx-5 mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                <span className="text-amber-500 text-base mt-0.5 flex-shrink-0">ⓘ</span>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  <strong>All sizes are Make to Order.</strong> Contact us on WhatsApp to place your order after selecting your size.
+                </p>
+              </div>
+
               <div className="flex-1 overflow-y-auto px-5 py-5">
                 <div className="grid grid-cols-3 gap-3">
                   {sizes.map((size) => {
@@ -170,8 +236,8 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
                             {mm}
                           </span>
                         )}
-                        <span className={`text-[9px] font-medium mt-1 px-2 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"}`}>
-                          Made to Order
+                        <span className={`text-[9px] font-medium mt-1 px-2 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>
+                          Make to Order
                         </span>
                       </button>
                     );
@@ -179,17 +245,16 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError }) => {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 flex-shrink-0">
                 <p className="text-xs text-gray-500 text-center leading-relaxed">
                   Not sure about your size?{" "}
-                  <a
-                    href={`https://wa.me/916353974557?text=${encodeURIComponent("Hi! I need help finding my size for a Ruveri Jewel product.")}`}
+                  
+                  <Link  href={`https://wa.me/916353974557?text=${encodeURIComponent("Hi! I need help finding my size for a Ruveri Jewel product.")}`}
                     target="_blank" rel="noopener noreferrer"
                     className="text-black font-semibold underline underline-offset-2"
                   >
                     Ask our expert on WhatsApp
-                  </a>
+                  </Link>
                 </p>
               </div>
             </motion.div>
@@ -213,7 +278,7 @@ const ConnectWithExpert = ({ product }) => {
   if (!url) return null;
 
   return (
-    <a
+    <Link
       href={url}
       target="_blank"
       rel="noopener noreferrer"
@@ -223,34 +288,79 @@ const ConnectWithExpert = ({ product }) => {
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
       </svg>
       Connect with Expert
-    </a>
+    </Link>
   );
 };
 
+/* ---------- PRICE BREAKDOWN ---------- */
+// Note: breakdown always shows INR raw calculation (that's what's stored in DB)
+// The converted price is shown separately in the main product price
 /* ---------- PRICE BREAKDOWN ---------- */
 const PriceBreakdown = ({ product }) => {
   const [openBreakdown, setOpenBreakdown] = useState(false);
   if (!product) return null;
   const isSilver = product.metal === "silver";
 
+  // Use the currency from API response
+  const sym = product.currencySymbol || "₹";
+  const currencyCode = product.currencyCode || "INR";
+  const isINR = currencyCode === "INR";
+
+  // Conversion rate: if API returned converted totalPrice, derive the rate
+  // rate = convertedTotal / inrTotal  →  use same rate for all line items
+  const getConversionRate = () => {
+    if (isINR) return 1;
+    const inrTotal = (() => {
+      if (isSilver) return Number(product.metalPrice) || 0;
+      const nw = Number(product.netWeight) || 0;
+      const mp = Number(product.metalPrice) || 0;
+      const mc = Number(product.makingCharges) || 0;
+      const dp = Number(product.diamondPrice) || 0;
+      const pm = getPurityMultiplier(product.metal, product.purity);
+      return Math.ceil(nw * mp * pm + mc + dp);
+    })();
+    if (!inrTotal || !product.totalPrice) return 1;
+    return product.totalPrice / inrTotal;
+  };
+
+  const rate = getConversionRate();
+
+  // Convert a single INR amount to selected currency, rounded to 2 decimals
+  const conv = (inrAmount) => {
+    if (isINR) return Math.ceil(inrAmount).toLocaleString();
+    return (Math.round(inrAmount * rate * 100) / 100).toLocaleString();
+  };
+
   if (isSilver) {
-    const totalPrice = Number(product.metalPrice) || 0;
+    const totalINR = Number(product.metalPrice) || 0;
+    const displayTotal = isINR ? Math.ceil(totalINR) : product.totalPrice;
+
     return (
       <div className="mt-4">
-        <button onClick={() => setOpenBreakdown(!openBreakdown)}
-          className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={() => setOpenBreakdown(!openBreakdown)}
+          className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors"
+        >
           <span className="text-base sm:text-lg font-medium">Price Breakdown</span>
           <span className="text-xl sm:text-2xl">{openBreakdown ? "−" : "+"}</span>
         </button>
         {openBreakdown && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="overflow-hidden"
+          >
             <div className="py-6 space-y-4">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Component
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount ({currencyCode})
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -259,11 +369,19 @@ const PriceBreakdown = ({ product }) => {
                         <div className="font-medium">Silver Product Price</div>
                         <div className="text-xs text-gray-500">{product.purity} — fixed price</div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {sym}{conv(totalINR)}
+                      </td>
                     </tr>
                     <tr className="bg-gray-100">
-                      <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
-                      <td className="px-4 py-3"><div className="text-lg font-bold text-black">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</div></td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-bold text-black">Final Price</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-lg font-bold text-black">
+                          {sym}{displayTotal?.toLocaleString()}
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -272,7 +390,9 @@ const PriceBreakdown = ({ product }) => {
                 <ul className="text-xs text-blue-700 space-y-1">
                   <li>• Price includes all charges (making, GST, etc.)</li>
                   <li>• BIS Hallmarked — {product.purity} certified silver</li>
-                  <li>• All prices are in Indian Rupees (₹)</li>
+                  {!isINR && (
+                    <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>
+                  )}
                 </ul>
               </div>
             </div>
@@ -282,42 +402,59 @@ const PriceBreakdown = ({ product }) => {
     );
   }
 
+  // Gold breakdown
   const netWeight = Number(product.netWeight) || 0;
   const metalPrice = Number(product.metalPrice) || 0;
   const makingCharges = Number(product.makingCharges) || 0;
   const diamondPrice = Number(product.diamondPrice) || 0;
   const diamondWeight = Number(product.diamondWeight) || 0;
   const purityMultiplier = getPurityMultiplier(product.metal, product.purity);
-  const metalCost = netWeight * metalPrice * purityMultiplier;
-  const totalPrice = Math.ceil(metalCost + makingCharges + diamondPrice);
+  const metalCostINR = netWeight * metalPrice * purityMultiplier;
+  const totalINR = Math.ceil(metalCostINR + makingCharges + diamondPrice);
   const gstRate = 0.03;
-  const gstOnMakingCharges = makingCharges * gstRate;
-  const makingChargesWithoutGST = makingCharges - gstOnMakingCharges;
+  const gstOnMakingINR = makingCharges * gstRate;
+  const makingWithoutGSTINR = makingCharges - gstOnMakingINR;
 
   return (
     <div className="mt-4">
-      <button onClick={() => setOpenBreakdown(!openBreakdown)}
-        className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors">
+      <button
+        onClick={() => setOpenBreakdown(!openBreakdown)}
+        className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors"
+      >
         <span className="text-base sm:text-lg font-medium">Price Breakdown</span>
         <span className="text-xl sm:text-2xl">{openBreakdown ? "−" : "+"}</span>
       </button>
       {openBreakdown && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="overflow-hidden"
+        >
           <div className="py-6 space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium text-black mb-3">How we calculate the price:</h4>
               <p className="text-sm text-gray-600 mb-2">
-                Total Price = (Net Weight × Metal Price of <strong>pure metal</strong> × Purity Multiplier) + Diamond Price + Making Charges (includes GST)
+                Total Price = (Net Weight × Metal Price of{" "}
+                <strong>pure metal</strong> × Purity Multiplier) + Diamond Price + Making Charges (includes GST)
               </p>
-              <p className="text-xs text-gray-500"><em>Purity Multiplier converts pure metal price (24K gold) to the actual product purity</em></p>
+              <p className="text-xs text-gray-500">
+                <em>Purity Multiplier converts pure metal price (24K gold) to the actual product purity</em>
+              </p>
             </div>
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calculation</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Component
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Calculation
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount ({currencyCode})
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -326,11 +463,17 @@ const PriceBreakdown = ({ product }) => {
                       <div className="font-medium">Metal Cost</div>
                       <div className="text-xs text-gray-500">
                         {product.metal.charAt(0).toUpperCase() + product.metal.slice(1)} ({product.purity})
-                        <span className="block text-xs text-gray-400">Converted via Purity Multiplier ({purityMultiplier})</span>
+                        <span className="block text-xs text-gray-400">
+                          Converted via Purity Multiplier ({purityMultiplier})
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{netWeight}g × ₹{metalPrice.toLocaleString()}/g × {purityMultiplier}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">₹{Math.ceil(metalCost).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {netWeight}g × {sym}{conv(metalPrice)}/g × {purityMultiplier}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {sym}{conv(metalCostINR)}
+                    </td>
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm text-gray-900">
@@ -338,7 +481,9 @@ const PriceBreakdown = ({ product }) => {
                       <div className="text-xs text-gray-500">{diamondWeight} ct diamonds</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{diamondWeight} ct</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">₹{diamondPrice.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {sym}{conv(diamondPrice)}
+                    </td>
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm text-gray-900">
@@ -346,30 +491,47 @@ const PriceBreakdown = ({ product }) => {
                       <div className="text-xs text-gray-500">Including 3% GST</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">Labour + Design + GST</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">₹{makingCharges.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {sym}{conv(makingCharges)}
+                    </td>
                   </tr>
                   <tr className="bg-gray-50">
                     <td colSpan="3" className="px-4 py-3 text-sm text-gray-600">
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-gray-500">Making Charges (before GST):</span><span className="font-medium ml-1">₹{Math.ceil(makingChargesWithoutGST).toLocaleString()}</span></div>
-                        <div><span className="text-gray-500">GST @3%:</span><span className="font-medium ml-1">₹{Math.ceil(gstOnMakingCharges).toLocaleString()}</span></div>
+                        <div>
+                          <span className="text-gray-500">Making Charges (before GST):</span>
+                          <span className="font-medium ml-1">{sym}{conv(makingWithoutGSTINR)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">GST @3%:</span>
+                          <span className="font-medium ml-1">{sym}{conv(gstOnMakingINR)}</span>
+                        </div>
                       </div>
                     </td>
                   </tr>
                   <tr className="bg-gray-100">
-                    <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-bold text-black">Final Price</div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-600">Metal Cost + Making Charges</td>
-                    <td className="px-4 py-3"><div className="text-lg font-bold text-black">{product.currencySymbol || "₹"}{totalPrice.toLocaleString()}</div></td>
+                    <td className="px-4 py-3">
+                      <div className="text-lg font-bold text-black">
+                        {sym}{product.totalPrice?.toLocaleString()}
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <ul className="text-xs text-blue-700 space-y-1">
                 <li>• Metal price is based on current market rates (updated daily)</li>
                 <li>• Making charges include GST as per government regulations</li>
                 <li>• Hallmarking charges are included in making charges</li>
-                <li>• All prices are in Indian Rupees (₹)</li>
+                {!isINR && (
+                  <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>
+                )}
               </ul>
             </div>
           </div>
@@ -511,6 +673,15 @@ export default function ProductDetail() {
   const [sizeError, setSizeError] = useState(false);
 
   const requiresSize = (category) => category === "rings" || category === "bangles";
+  // If category requires size and a size is selected → it's Make to Order
+  const isMakeToOrder = requiresSize(product?.category) && !!selectedSize;
+
+  // Build WhatsApp URL for MTO orders
+  const mtoWhatsappUrl = product
+    ? `https://wa.me/916353974557?text=${encodeURIComponent(
+        `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*\nSize: ${selectedSize}\nPrice: ${product.currencySymbol || "₹"}${product.totalPrice?.toLocaleString()}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`
+      )}`
+    : "";
 
   const validateSize = () => {
     if (requiresSize(product?.category) && !selectedSize) {
@@ -522,20 +693,34 @@ export default function ProductDetail() {
     return true;
   };
 
+  // ── Fetch product with currency ──────────────────────────────────────────
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const currency = localStorage.getItem("currency") || "INR";
+      const res = await fetch(`/api/products/fetch/${slug}?currency=${currency}`, {
+        headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch product: ${res.status}`);
+      const data = await res.json();
+      setProduct(data);
+      setMainImage(data.img1 || "/placeholder.jpg");
+    } catch (err) {
+      setError(err.message || "Failed to load product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const currency = localStorage.getItem("currency") || "INR";
-        const res = await fetch(`/api/products/fetch/${slug}?currency=${currency}`, { headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY } });
-        if (!res.ok) throw new Error(`Failed to fetch product: ${res.status}`);
-        const data = await res.json();
-        setProduct(data);
-        setMainImage(data.img1 || "/placeholder.jpg");
-      } catch (err) { setError(err.message || "Failed to load product"); }
-      finally { setLoading(false); }
-    };
     if (slug) fetchProduct();
+  }, [slug]);
+
+  // Re-fetch when currency changes from navbar
+  useEffect(() => {
+    const handler = () => { if (slug) fetchProduct(); };
+    window.addEventListener("currencyChange", handler);
+    return () => window.removeEventListener("currencyChange", handler);
   }, [slug]);
 
   useEffect(() => {
@@ -568,6 +753,7 @@ export default function ProductDetail() {
     } catch { setWishlist(wishlist); localStorage.setItem("wishlist", JSON.stringify(wishlist)); }
   };
 
+  // Cart always stores INR price
   const buildCartItem = (p, price) => ({
     id: p._id || slug, productName: p.productName, quantity: 1, price,
     image: p.img1, metal: p.metal, purity: p.purity, weight: p.netWeight,
@@ -578,22 +764,47 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!validateSize()) return;
+
+    // Block MTO items — redirect to WhatsApp
+    if (isMakeToOrder) {
+      window.dispatchEvent(new CustomEvent("highlight-whatsapp"));
+      return;
+    }
+
     const user = getLoggedInUser();
-    if (!user?.email) { try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } } catch { setLoginPrompt(true); return; } }
+    if (!user?.email) {
+      try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } }
+      catch { setLoginPrompt(true); return; }
+    }
     if (!product || quantity > 0) return;
-    addToCart(product._id || slug, buildCartItem(product, calculateTotalPrice(product))); setQuantity(1);
+    // Use INR price for cart
+    addToCart(product._id || slug, buildCartItem(product, calculateTotalPriceINR(product)));
+    setQuantity(1);
   };
 
   const handleBuyNow = async () => {
     if (!validateSize()) return;
+
+    // Block MTO items — redirect to WhatsApp
+    if (isMakeToOrder) {
+      window.dispatchEvent(new CustomEvent("highlight-whatsapp"));
+      return;
+    }
+
     const user = getLoggedInUser();
-    if (!user?.email) { try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } } catch { setLoginPrompt(true); return; } }
+    if (!user?.email) {
+      try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } }
+      catch { setLoginPrompt(true); return; }
+    }
     if (!product) return;
-    if (quantity === 0) { addToCart(product._id || slug, buildCartItem(product, calculateTotalPrice(product))); setQuantity(1); }
+    if (quantity === 0) {
+      addToCart(product._id || slug, buildCartItem(product, calculateTotalPriceINR(product)));
+      setQuantity(1);
+    }
     setTimeout(() => setShowCheckoutPopup(true), 100);
   };
 
-  const increaseQuantity = () => { if (!product) return; const id = product._id || slug; updateQuantity(id, quantity + 1); setQuantity(q => q + 1); };
+  const increaseQuantity = () => { if (!product) return; updateQuantity(product._id || slug, quantity + 1); setQuantity(q => q + 1); };
   const decreaseQuantity = () => {
     if (!product) return; const id = product._id || slug;
     if (quantity > 1) { updateQuantity(id, quantity - 1); setQuantity(q => q - 1); }
@@ -624,7 +835,9 @@ export default function ProductDetail() {
   const isSilver = product.metal === "silver";
   const allImages = [product.img1, product.img2, product.img3].filter(Boolean);
   const isInWishlist = wishlist.includes(String(slug));
-  const totalPrice = calculateTotalPrice(product);
+  // Use converted totalPrice from API for display
+  const displayPrice = product.totalPrice ?? 0;
+  const displaySymbol = product.currencySymbol || "₹";
   const productId = product._id || slug;
 
   return (
@@ -689,12 +902,17 @@ export default function ProductDetail() {
             {product.productName}
           </h1>
 
-          {/* ── Price + Connect with Expert (inline) ── */}
+          {/* Price + Connect with Expert */}
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
-                {product.currencySymbol || "₹"}{totalPrice.toLocaleString()}
+                {displaySymbol}{displayPrice.toLocaleString()}
               </p>
+              {product.currencyCode && product.currencyCode !== "INR" && (
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {product.currencyCode}
+                </span>
+              )}
               <ConnectWithExpert product={product} />
             </div>
             <p className="text-xs sm:text-sm text-gray-600">
@@ -721,19 +939,44 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* ── SIZE SELECTOR ── */}
+          {/* SIZE SELECTOR */}
           <div id="size-selector">
             <SizeSelector
               category={product.category}
               selectedSize={selectedSize}
               onSelectSize={(size) => { setSelectedSize(size); setSizeError(false); }}
               sizeError={sizeError}
+              whatsappUrl={mtoWhatsappUrl}
             />
           </div>
 
-          {/* ── ACTIONS ── */}
+          {/* ACTIONS */}
           <div className="space-y-4">
-            {quantity > 0 ? (
+            {isMakeToOrder ? (
+              /* MTO: replace Add to Cart / Buy Now with WhatsApp order button */
+              <div className="space-y-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-center">
+                  <p className="text-sm text-amber-800 font-medium mb-1">Make to Order — Size {selectedSize}</p>
+                  <p className="text-xs text-amber-700">This item is crafted specifically for you. Place your order via WhatsApp.</p>
+                </div>
+                <Link href={mtoWhatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#25D366] text-white py-3 text-base sm:text-lg hover:bg-[#1ebe5d] transition-colors flex items-center justify-center gap-2 rounded-none"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                  Order on WhatsApp — Size {selectedSize}
+                </Link>
+                <button
+                  onClick={() => { setSelectedSize(""); }}
+                  className="w-full border border-gray-300 text-gray-600 py-2.5 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  ← Choose a different size
+                </button>
+              </div>
+            ) : quantity > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-center border border-black rounded-lg overflow-hidden max-w-xs mx-auto">
                   <button onClick={decreaseQuantity} className="px-3 py-2.5 sm:px-4 sm:py-3 hover:bg-gray-100 transition-colors flex-1 text-center">−</button>

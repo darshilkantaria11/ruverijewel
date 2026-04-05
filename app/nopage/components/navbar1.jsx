@@ -188,7 +188,7 @@ export default function Page() {
     <nav className="w-full bg-back relative">
 
       {/* Currency dropdown — top right corner */}
-      <div className="absolute top-3 right-4 z-10">
+      <div className="absolute md:top-3 top-0 right-1 md:right-4 z-10">
         <CurrencyDropdown selected={currency} onChange={handleCurrencyChange} />
       </div>
 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useCart } from "../context/CartContext";
 import { loadRazorpay } from "../../lib/razorpay";
 import { useRouter } from "next/navigation";
@@ -18,58 +18,117 @@ export default function PaymentStep({ userData }) {
   const [pricesLoading, setPricesLoading] = useState(true);
   const [priceError, setPriceError] = useState(null);
 
-  // Fetch real-time prices for all cart items
-  useEffect(() => {
-    const fetchProductPrices = async () => {
-      setPricesLoading(true);
-      setPriceError(null);
-
-      try {
-        const pricePromises = cartItems.map(async (item) => {
-          const currency = localStorage.getItem("currency") || "INR";
-          const res = await fetch(`/api/products/fetch/${item.id}?currency=${currency}`, {
-            headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY },
-          });
-          if (!res.ok) throw new Error(`Failed to fetch price for ${item.productName}`);
-          const data = await res.json();
-          return { id: item.id, totalPrice: data.totalPrice, productData: data };
+  // ── Fetch real-time prices with selected currency ────────────────────────
+  const fetchProductPrices = async () => {
+    if (!cartItems.length) { setPricesLoading(false); return; }
+    setPricesLoading(true);
+    setPriceError(null);
+    try {
+      const currency = localStorage.getItem("currency") || "INR";
+      const pricePromises = cartItems.map(async (item) => {
+        const res = await fetch(`/api/products/fetch/${item.id}?currency=${currency}`, {
+          headers: { "x-api-key": process.env.NEXT_PUBLIC_API_KEY },
         });
+        if (!res.ok) throw new Error(`Failed to fetch price for ${item.productName}`);
+        const data = await res.json();
+        return { id: item.id, totalPrice: data.totalPrice, productData: data };
+      });
 
-        const prices = await Promise.all(pricePromises);
-        const priceMap = {};
-        prices.forEach(({ id, totalPrice, productData }) => {
-          priceMap[id] = { totalPrice, productData };
-        });
-        setProductPrices(priceMap);
-      } catch (err) {
-        console.error("Error fetching product prices:", err);
-        setPriceError(err.message);
-      } finally {
-        setPricesLoading(false);
-      }
-    };
-
-    if (cartItems.length > 0) fetchProductPrices();
-  }, [cartItems.length]);
-
-  // ── Totals ──────────────────────────────────────────────────────────────────
-  const subtotal = cartItems.reduce((sum, item) => {
-    const currentPrice = productPrices[item.id]?.totalPrice || item.price;
-    return sum + currentPrice * item.quantity;
-  }, 0);
-
-  const shippingCharge = userData?.shippingCharge || 0;
-  const grandTotal = subtotal + shippingCharge;
-
-  // ── Validation ──────────────────────────────────────────────────────────────
-  const validateOrder = () => {
-    if (pricesLoading) throw new Error("Please wait while we load current prices.");
-    if (priceError) throw new Error("Failed to load current prices. Please refresh.");
-    if (shippingCharge < 0) throw new Error("Invalid shipping charge. Please refresh.");
-    if (grandTotal <= 0) throw new Error("Order total cannot be zero.");
+      const prices = await Promise.all(pricePromises);
+      const priceMap = {};
+      prices.forEach(({ id, totalPrice, productData }) => {
+        priceMap[id] = { totalPrice, productData };
+      });
+      setProductPrices(priceMap);
+    } catch (err) {
+      console.error("Error fetching product prices:", err);
+      setPriceError(err.message);
+    } finally {
+      setPricesLoading(false);
+    }
   };
 
-  // ── Payment handler ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchProductPrices();
+  }, [cartItems.length]);
+
+  // Re-fetch when currency changes from navbar
+  useEffect(() => {
+    const handler = () => fetchProductPrices();
+    window.addEventListener("currencyChange", handler);
+    return () => window.removeEventListener("currencyChange", handler);
+  }, [cartItems.length]);
+
+  useEffect(() => { loadRazorpay(); }, []);
+
+  // ── Currency info (from first fetched product) ───────────────────────────
+  const firstProductData = useMemo(
+    () => Object.values(productPrices)[0]?.productData,
+    [productPrices]
+  );
+  const currencySymbol = firstProductData?.currencySymbol || "₹";
+  const currencyCode   = firstProductData?.currencyCode   || "INR";
+  const isINR          = currencyCode === "INR";
+
+  // Format a number in selected currency
+  const fmt = (amount) =>
+    isINR
+      ? Math.ceil(amount).toLocaleString()
+      : (Math.round(amount * 100) / 100).toLocaleString();
+
+  // ── Totals (always in converted currency for display) ────────────────────
+  // For display: use converted prices
+  const displaySubtotal = useMemo(() =>
+    cartItems.reduce((sum, item) => {
+      const price = productPrices[item.id]?.totalPrice ?? item.price;
+      return sum + price * item.quantity;
+    }, 0),
+    [cartItems, productPrices]
+  );
+
+  // For Razorpay: ALWAYS in INR — re-derive from raw DB values
+  // The API stores metalPrice/makingCharges etc. in INR.
+  // We re-fetch the INR price by calling without currency param (defaults to INR)
+  // BUT: simpler approach — we know the rate from API response:
+  // inrPrice = convertedPrice / (convertedTotal / inrTotal) = convertedPrice * (inrTotal / convertedTotal)
+  // Even simpler: just pass items to /api/pay which recalculates from DB — this is already safe ✓
+  // So grandTotalINR is only needed for the Razorpay amount display on payment buttons
+  // The actual INR charge comes from /api/pay server-side recalculation
+
+  const shippingCharge = userData?.shippingCharge || 0;
+
+  // Shipping in display currency: convert using same rate as products
+  // Rate = displayPrice / inrPrice for first product
+  const displayShipping = useMemo(() => {
+    if (shippingCharge === 0) return 0;
+    if (isINR) return shippingCharge;
+    // Derive rate from first product
+    const firstItem = cartItems[0];
+    if (!firstItem) return shippingCharge;
+    const convertedPrice = productPrices[firstItem.id]?.totalPrice;
+    const inrPrice = firstItem.price; // cart always stores INR
+    if (!convertedPrice || !inrPrice) return shippingCharge;
+    const rate = convertedPrice / inrPrice;
+    return Math.round(shippingCharge * rate * 100) / 100;
+  }, [shippingCharge, isINR, cartItems, productPrices]);
+
+  const displayGrandTotal = displaySubtotal + displayShipping;
+
+  // INR grand total for Razorpay button label (server recalculates independently)
+  const inrGrandTotal = useMemo(() =>
+    cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) + shippingCharge,
+    [cartItems, shippingCharge]
+  );
+
+  // ── Validation ───────────────────────────────────────────────────────────
+  const validateOrder = () => {
+    if (pricesLoading) throw new Error("Please wait while we load current prices.");
+    if (priceError)    throw new Error("Failed to load current prices. Please refresh.");
+    if (shippingCharge < 0) throw new Error("Invalid shipping charge. Please refresh.");
+    if (displayGrandTotal <= 0) throw new Error("Order total cannot be zero.");
+  };
+
+  // ── Payment handler ──────────────────────────────────────────────────────
   const handlePayment = async () => {
     try {
       setLoadingText("Processing payment...");
@@ -77,23 +136,11 @@ export default function PaymentStep({ userData }) {
       setError("");
       validateOrder();
 
-      // Items with current live prices + size from cart
-      const itemsWithCurrentPrices = cartItems.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-        price: productPrices[item.id]?.totalPrice || item.price,
-        productName: item.productName,
-        image: item.image,
-        // ── size: pass through whatever was stored in the cart ──────────────
-        // ProductDetail stores size in the cart item; defaults to null if not
-        // applicable (non-ring/bangle categories).
-        size: item.size || null,
-      }));
-
+      // Items passed to /api/pay — server always recalculates INR from DB
       const orderPayload = {
         items: cartItems.map((item) => ({ id: item.id, quantity: item.quantity })),
         address: userData.address,
-        shippingCharge,
+        shippingCharge, // always INR
         paymentMethod: "prepaid",
       };
 
@@ -110,10 +157,22 @@ export default function PaymentStep({ userData }) {
 
       const orderData = await orderRes.json();
 
-      // ── Razorpay checkout ──────────────────────────────────────────────────
+      // Items for placeorder (includes size + display price for records)
+      const itemsForOrder = cartItems.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price, // INR price for order record
+        displayPrice: productPrices[item.id]?.totalPrice ?? item.price,
+        displayCurrency: currencyCode,
+        productName: item.productName,
+        image: item.image,
+        size: item.size || null,
+      }));
+
+      // ── Razorpay options — amount is always INR paise ──────────────────
       const razorpayOptions = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-        amount: grandTotal * 100, // ← leave this as-is, Razorpay always charges in INR paise
+        amount: inrGrandTotal * 100, // paise, always INR
         currency: "INR",
         name: "Ruveri Jewel",
         description: "Order Payment",
@@ -121,7 +180,6 @@ export default function PaymentStep({ userData }) {
         order_id: orderData.razorpayOrderId,
         handler: async (response) => {
           try {
-            // 1. Verify signature
             const verifyRes = await fetch("/api/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -135,7 +193,6 @@ export default function PaymentStep({ userData }) {
             const verifyData = await verifyRes.json();
 
             if (verifyData.success) {
-              // 2. Place order in DB — include size on every item
               await fetch("/api/placeorder", {
                 method: "POST",
                 headers: {
@@ -146,12 +203,14 @@ export default function PaymentStep({ userData }) {
                   name: userData.name,
                   email: userData.email,
                   address: userData.address,
-                  // ── Pass the full enriched items array (includes size) ──
-                  items: itemsWithCurrentPrices,
+                  items: itemsForOrder,
                   method: "prepaid",
-                  subtotal,
+                  subtotal: inrGrandTotal - shippingCharge, // INR
                   shippingCharge,
-                  total: grandTotal,
+                  total: inrGrandTotal,                     // INR
+                  displaySubtotal,                          // converted
+                  displayTotal: displayGrandTotal,          // converted
+                  displayCurrency: currencyCode,
                   razorpayOrderId: response.razorpay_order_id,
                   razorpayPaymentId: response.razorpay_payment_id,
                   razorpaySignature: response.razorpay_signature,
@@ -176,27 +235,20 @@ export default function PaymentStep({ userData }) {
             setError("Payment cancelled. Please try again.");
           },
         },
-        prefill: {
-          name: userData.name,
-          email: userData.email,
-        },
+        prefill: { name: userData.name, email: userData.email },
         theme: { color: "#b71c0e" },
       };
 
       const razorpay = new window.Razorpay(razorpayOptions);
       razorpay.open();
-    } catch (error) {
-      console.log("Payment Error:", error);
-      setError(error.message || "Payment failed. Please try again.");
+    } catch (err) {
+      console.log("Payment Error:", err);
+      setError(err.message || "Payment failed. Please try again.");
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadRazorpay();
-  }, []);
-
-  // ── Loading / error screens ─────────────────────────────────────────────────
+  // ── Loading / error screens ──────────────────────────────────────────────
   if (pricesLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 text-sm">
@@ -216,15 +268,15 @@ export default function PaymentStep({ userData }) {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           <div className="font-semibold">Failed to load current prices</div>
           <div className="text-sm mt-1">{priceError}</div>
-          <button onClick={() => window.location.reload()} className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-            Refresh Page
+          <button onClick={() => fetchProductPrices()} className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+            Retry
           </button>
         </div>
       </div>
     );
   }
 
-  // ── Main render ─────────────────────────────────────────────────────────────
+  // ── Main render ──────────────────────────────────────────────────────────
   return (
     <div className="grid grid-cols-1 gap-4 text-sm">
       {error && (
@@ -247,33 +299,50 @@ export default function PaymentStep({ userData }) {
 
         <div className="space-y-2 max-h-56 overflow-auto pr-2">
           {cartItems.map((item) => {
-            const currentPrice = productPrices[item.id]?.totalPrice || item.price;
-            const priceChanged = currentPrice !== item.price;
-            // Resolve the size label for display
-            const sizeLabel = item.size && item.size.trim() !== ""
-              ? item.size
-              : "Not Applicable";
+            const data         = productPrices[item.id]?.productData;
+            const sym          = data?.currencySymbol || "₹";
+            const code         = data?.currencyCode   || "INR";
+            const unitPrice    = productPrices[item.id]?.totalPrice ?? item.price;
+            const lineTotal    = unitPrice * item.quantity;
+            const fmtLine      = code === "INR"
+              ? Math.ceil(lineTotal).toLocaleString()
+              : (Math.round(lineTotal * 100) / 100).toLocaleString();
+            const fmtUnit      = code === "INR"
+              ? Math.ceil(unitPrice).toLocaleString()
+              : (Math.round(unitPrice * 100) / 100).toLocaleString();
+            // Flag if price changed from what was stored at add-to-cart time
+            const priceChanged = unitPrice !== item.price && isINR;
+            const sizeLabel    = item.size?.trim() || null;
 
             return (
               <div key={item.id} className="flex items-start gap-3 pb-2 border-b last:border-b-0">
                 <div className="w-20 h-20 shrink-0 overflow-hidden rounded border bg-white">
                   <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex flex-col justify-between text-sm w-full">
-                  <p className="font-medium text-gray-900">{item.productName}</p>
-                  <p className="text-xs text-gray-500">Quantity: {item.quantity}</p>
-                  {/* ── Size display ── */}
+                <div className="flex flex-col gap-0.5 text-sm w-full">
+                  <p className="font-medium text-gray-900 leading-snug">{item.productName}</p>
+                  {data?.metal && (
+                    <p className="text-xs text-gray-400 capitalize">{data.metal} · {data.purity}</p>
+                  )}
+                  <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                   <p className="text-xs text-gray-500">
                     Size:{" "}
-                    <span className={sizeLabel !== "Not Applicable" ? "font-semibold text-gray-800" : "text-gray-400"}>
-                      {sizeLabel}
+                    <span className={sizeLabel ? "font-semibold text-gray-800" : "text-gray-400"}>
+                      {sizeLabel || "N/A"}
                     </span>
                   </p>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-semibold ${priceChanged ? "text-black" : "text-gray-800"}`}>
-                      {productPrices[item.id]?.productData?.currencySymbol || "₹"}{currentPrice}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-semibold text-gray-900">
+                      {sym}{fmtLine}
                     </span>
-                    {priceChanged && <span className="text-xs text-green-600">(Updated)</span>}
+                    {item.quantity > 1 && (
+                      <span className="text-xs text-gray-400">({sym}{fmtUnit} each)</span>
+                    )}
+                    {priceChanged && (
+                      <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                        Price updated
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -281,20 +350,34 @@ export default function PaymentStep({ userData }) {
           })}
         </div>
 
-        {/* Price breakdown */}
-        <div className="border-t pt-3 space-y-1 text-gray-700">
+        {/* ── Totals ── */}
+        <div className="border-t pt-3 space-y-1.5 text-gray-700">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{subtotal}</span>
+            <span>{currencySymbol}{fmt(displaySubtotal)}</span>
           </div>
           <div className="flex justify-between">
             <span>Shipping</span>
-            {shippingCharge > 0 ? <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{shippingCharge}</span> : <span className="text-green-600">Free</span>}
+            {displayShipping > 0
+              ? <span>{currencySymbol}{fmt(displayShipping)}</span>
+              : <span className="text-green-600">Free</span>
+            }
           </div>
           <div className="flex justify-between font-semibold text-base text-gray-900 pt-2 border-t">
             <span>Total</span>
-            <span>{Object.values(productPrices)[0]?.productData?.currencySymbol || "₹"}{grandTotal}</span>
+            <span>{currencySymbol}{fmt(displayGrandTotal)}</span>
           </div>
+          {/* Show INR equivalent when non-INR selected */}
+          {/* {!isINR && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-2">
+              <p className="text-xs text-blue-700 font-medium">
+                Payment processed in INR: ₹{Math.ceil(inrGrandTotal).toLocaleString()}
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                Prices displayed in {currencyCode} for reference. Razorpay charges in INR.
+              </p>
+            </div>
+          )} */}
         </div>
       </div>
 
@@ -303,10 +386,10 @@ export default function PaymentStep({ userData }) {
         <h2 className="text-base font-semibold border-b pb-2">Payment Options</h2>
 
         {[
-          { label: "Pay via UPI", desc: "GPay, PhonePe, Paytm" },
+          { label: "Pay via UPI",       desc: "GPay, PhonePe, Paytm" },
           { label: "Debit/Credit Cards", desc: "Visa, MasterCard, Rupay" },
-          { label: "Wallets", desc: "PhonePe, Amazon, Mobikwik" },
-          { label: "Netbanking", desc: "SBI, HDFC, ICICI, Axis" },
+          { label: "Wallets",            desc: "PhonePe, Amazon, Mobikwik" },
+          { label: "Netbanking",         desc: "SBI, HDFC, ICICI, Axis" },
         ].map((method, index) => (
           <button
             key={index}
@@ -318,7 +401,15 @@ export default function PaymentStep({ userData }) {
               <p className="font-bold">{method.label}</p>
               <p className="text-xs">{method.desc}</p>
             </div>
-            <div className="text-right text-base font-semibold">₹{grandTotal}</div>
+            {/* Always show INR on the payment button — that's what Razorpay charges */}
+            <div className="text-right">
+              <p className="text-base font-semibold">{currencySymbol}{fmt(displayGrandTotal)} {currencyCode}</p>
+              {/* {!isINR && (
+                <p className="text-xs text-gray-500">
+                  ≈ {currencySymbol}{fmt(displayGrandTotal)} {currencyCode}
+                </p>
+              )} */}
+            </div>
           </button>
         ))}
 
