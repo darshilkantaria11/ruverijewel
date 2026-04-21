@@ -18,7 +18,6 @@ const getPurityMultiplier = (metal, purity) => {
   return 1;
 };
 
-// Used only for cart price (always INR) — display price comes from API (converted)
 const calculateTotalPriceINR = (product) => {
   if (!product) return 0;
   try {
@@ -42,6 +41,115 @@ const BANGLE_SIZE_MM = {
   "2.2": "55.9mm", "2.3": "58.4mm", "2.4": "61.0mm", "2.5": "63.5mm",
   "2.6": "66.0mm", "2.7": "68.6mm", "2.8": "71.1mm", "2.9": "73.7mm", "2.10": "76.2mm",
 };
+const BRACELET_SIZE_IN = {
+  "6in": "XS",
+  "6.5in": "S",
+  "7in": "M",
+  "7.5in": "L",
+  "8in": "XL",
+};
+
+/* ---------- categories that require size ---------- */
+const SIZED_CATEGORIES = ["rings", "bangles", "bracelets"];
+
+const requiresSize = (category) => SIZED_CATEGORIES.includes(category?.toLowerCase());
+
+const getSizeConfig = (category) => {
+  const cat = category?.toLowerCase();
+  if (cat === "rings") return {
+    label: "Ring Size",
+    sizes: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    sizeMap: RING_SIZE_MM,
+    subtitle: "Indian ring sizes with circumference",
+  };
+  if (cat === "bangles") return {
+    label: "Bangle Size",
+    sizes: ["2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "2.10"],
+    sizeMap: BANGLE_SIZE_MM,
+    subtitle: "Standard bangle sizes in inches",
+  };
+ 
+if (cat === "bracelets") return {
+  label: "Bracelet Size",
+  sizes: ["6in", "6.5in", "7in", "7.5in", "8in"],
+  sizeMap: BRACELET_SIZE_IN,
+  subtitle: "Bracelet sizes in inches (standard fit)",
+};
+  return null;
+};
+
+/* ---------- DIAMOND TYPE SELECTOR ---------- */
+const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType }) => {
+  const types = [
+    {
+      id: "natural",
+      label: "Natural Diamond",
+      icon: "💎",
+      desc: "Mined from the earth, each stone unique",
+      badge: "Classic",
+      badgeColor: "bg-amber-100 text-amber-800",
+    },
+    {
+      id: "lab_grown",
+      label: "Lab Grown Diamond",
+      icon: "⚗️",
+      desc: "Same chemical properties, eco-friendly",
+      badge: "Sustainable",
+      badgeColor: "bg-emerald-100 text-emerald-800",
+    },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-gray-800">Diamond Type</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {types.map((type) => {
+          const isSelected = selectedDiamondType === type.id;
+          return (
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => onSelectDiamondType(type.id)}
+              className={`relative flex flex-col gap-1.5 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                isSelected
+                  ? "border-black bg-black text-white shadow-lg"
+                  : "border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-400 hover:bg-white"
+              }`}
+            >
+              {/* Badge */}
+              <span className={`absolute top-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                isSelected ? "bg-white/20 text-white" : type.badgeColor
+              }`}>
+                {type.badge}
+              </span>
+
+              <span className="text-xl leading-none">{type.icon}</span>
+              <span className={`text-sm font-semibold leading-tight ${isSelected ? "text-white" : "text-gray-900"}`}>
+                {type.label}
+              </span>
+              <span className={`text-xs leading-snug ${isSelected ? "text-white/70" : "text-gray-500"}`}>
+                {type.desc}
+              </span>
+
+              {isSelected && (
+                <span className="absolute top-2 left-2">
+                  <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {!selectedDiamondType && (
+        <p className="text-xs text-gray-400 mt-1">
+          Please select a diamond type to proceed with your WhatsApp order.
+        </p>
+      )}
+    </div>
+  );
+};
 
 /* ---------- SIZE SELECTOR ---------- */
 const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsappUrl }) => {
@@ -54,33 +162,27 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
     document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // ✅ useEffect is now BEFORE the early return — no rules-of-hooks violation
   useEffect(() => {
     const handler = () => triggerWhatsappHighlight();
     window.addEventListener("highlight-whatsapp", handler);
     return () => window.removeEventListener("highlight-whatsapp", handler);
   }, []);
 
-  if (category !== "rings" && category !== "bangles") return null;
+  const config = getSizeConfig(category);
+  if (!config) return null;
 
-  const sizes = category === "rings"
-    ? [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    : ["2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "2.10"];
-
-  const sizeMap = category === "rings" ? RING_SIZE_MM : BANGLE_SIZE_MM;
-  const label = category === "rings" ? "Ring Size" : "Bangle Size";
+  const { label, sizes, sizeMap, subtitle } = config;
+  const isMakeToOrder = !!selectedSize;
 
   const handleSelect = (size) => {
     onSelectSize(String(size));
     setPanelOpen(false);
   };
 
-  const isMakeToOrder = !!selectedSize;
-
   return (
     <>
       <div className="space-y-3">
-        {category === "bangles" && (
+        {category?.toLowerCase() === "bangles" && (
           <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
             <span className="text-amber-500 text-base mt-0.5 flex-shrink-0">ⓘ</span>
             <p className="text-xs text-amber-800 leading-relaxed">
@@ -122,7 +224,7 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
           </button>
         </div>
 
-        {/* Make to Order notice + WhatsApp CTA */}
+        {/* MTO notice */}
         {isMakeToOrder && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
@@ -173,7 +275,7 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
         )}
       </div>
 
-      {/* ── Slide-in panel from LEFT ── */}
+      {/* Slide-in panel */}
       <AnimatePresence>
         {panelOpen && (
           <>
@@ -191,9 +293,7 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
                 <div>
                   <h3 className="text-lg font-semibold text-black">Select {label}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {category === "rings" ? "Indian ring sizes with circumference" : "Standard bangle sizes in inches"}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
                 </div>
                 <button onClick={() => setPanelOpen(false)}
                   className="p-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -201,11 +301,10 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
                 </button>
               </div>
 
-              {/* All sizes are Make to Order — info banner inside panel */}
               <div className="mx-5 mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
                 <span className="text-amber-500 text-base mt-0.5 flex-shrink-0">ⓘ</span>
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  <strong>All sizes are Make to Order.</strong> Contact us on WhatsApp to place your order after selecting your size.
+                  <strong>All sizes are Make to Order.</strong> Contact us on WhatsApp after selecting your size.
                 </p>
               </div>
 
@@ -213,24 +312,22 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
                 <div className="grid grid-cols-3 gap-3">
                   {sizes.map((size) => {
                     const isSelected = String(selectedSize) === String(size);
-                    const mm = sizeMap[size];
+                    const detail = sizeMap[size];
                     return (
                       <button
                         key={size}
                         type="button"
                         onClick={() => handleSelect(size)}
-                        className={`
-                          flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all duration-200
-                          ${isSelected
+                        className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all duration-200 ${
+                          isSelected
                             ? "border-black bg-black text-white shadow-lg scale-105"
                             : "border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-400 hover:bg-white"
-                          }
-                        `}
+                        }`}
                       >
                         <span className="text-xl font-bold leading-none">{size}</span>
-                        {mm && (
+                        {detail && (
                           <span className={`text-[10px] leading-none mt-0.5 ${isSelected ? "text-white/70" : "text-gray-400"}`}>
-                            {mm}
+                            {detail}
                           </span>
                         )}
                         <span className={`text-[9px] font-medium mt-1 px-2 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>
@@ -245,11 +342,9 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
               <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 flex-shrink-0">
                 <p className="text-xs text-gray-500 text-center leading-relaxed">
                   Not sure about your size?{" "}
-                  
-                  <Link  href={`https://wa.me/916353974557?text=${encodeURIComponent("Hi! I need help finding my size for a Ruveri Jewel product.")}`}
+                  <Link href={`https://wa.me/916353974557?text=${encodeURIComponent("Hi! I need help finding my size for a Ruveri Jewel product.")}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="text-black font-semibold underline underline-offset-2"
-                  >
+                    className="text-black font-semibold underline underline-offset-2">
                     Ask our expert on WhatsApp
                   </Link>
                 </p>
@@ -275,12 +370,8 @@ const ConnectWithExpert = ({ product }) => {
   if (!url) return null;
 
   return (
-    <Link
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 border border-[#25D366] text-[#25D366] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#25D366] hover:text-white transition-all duration-200 whitespace-nowrap flex-shrink-0"
-    >
+    <Link href={url} target="_blank" rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 border border-[#25D366] text-[#25D366] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#25D366] hover:text-white transition-all duration-200 whitespace-nowrap flex-shrink-0">
       <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
       </svg>
@@ -290,21 +381,14 @@ const ConnectWithExpert = ({ product }) => {
 };
 
 /* ---------- PRICE BREAKDOWN ---------- */
-// Note: breakdown always shows INR raw calculation (that's what's stored in DB)
-// The converted price is shown separately in the main product price
-/* ---------- PRICE BREAKDOWN ---------- */
 const PriceBreakdown = ({ product }) => {
   const [openBreakdown, setOpenBreakdown] = useState(false);
   if (!product) return null;
   const isSilver = product.metal === "silver";
-
-  // Use the currency from API response
   const sym = product.currencySymbol || "₹";
   const currencyCode = product.currencyCode || "INR";
   const isINR = currencyCode === "INR";
 
-  // Conversion rate: if API returned converted totalPrice, derive the rate
-  // rate = convertedTotal / inrTotal  →  use same rate for all line items
   const getConversionRate = () => {
     if (isINR) return 1;
     const inrTotal = (() => {
@@ -321,8 +405,6 @@ const PriceBreakdown = ({ product }) => {
   };
 
   const rate = getConversionRate();
-
-  // Convert a single INR amount to selected currency, rounded to 2 decimals
   const conv = (inrAmount) => {
     if (isINR) return Math.ceil(inrAmount).toLocaleString();
     return (Math.round(inrAmount * rate * 100) / 100).toLocaleString();
@@ -331,33 +413,22 @@ const PriceBreakdown = ({ product }) => {
   if (isSilver) {
     const totalINR = Number(product.metalPrice) || 0;
     const displayTotal = isINR ? Math.ceil(totalINR) : product.totalPrice;
-
     return (
       <div className="mt-4">
-        <button
-          onClick={() => setOpenBreakdown(!openBreakdown)}
-          className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors"
-        >
+        <button onClick={() => setOpenBreakdown(!openBreakdown)}
+          className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors">
           <span className="text-base sm:text-lg font-medium">Price Breakdown</span>
           <span className="text-xl sm:text-2xl">{openBreakdown ? "−" : "+"}</span>
         </button>
         {openBreakdown && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="overflow-hidden"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
             <div className="py-6 space-y-4">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Component
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount ({currencyCode})
-                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ({currencyCode})</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -366,19 +437,11 @@ const PriceBreakdown = ({ product }) => {
                         <div className="font-medium">Silver Product Price</div>
                         <div className="text-xs text-gray-500">{product.purity} — fixed price</div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {sym}{conv(totalINR)}
-                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{sym}{conv(totalINR)}</td>
                     </tr>
                     <tr className="bg-gray-100">
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-bold text-black">Final Price</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-lg font-bold text-black">
-                          {sym}{displayTotal?.toLocaleString()}
-                        </div>
-                      </td>
+                      <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
+                      <td className="px-4 py-3"><div className="text-lg font-bold text-black">{sym}{displayTotal?.toLocaleString()}</div></td>
                     </tr>
                   </tbody>
                 </table>
@@ -387,9 +450,7 @@ const PriceBreakdown = ({ product }) => {
                 <ul className="text-xs text-blue-700 space-y-1">
                   <li>• Price includes all charges (making, GST, etc.)</li>
                   <li>• BIS Hallmarked — {product.purity} certified silver</li>
-                  {!isINR && (
-                    <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>
-                  )}
+                  {!isINR && <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>}
                 </ul>
               </div>
             </div>
@@ -399,7 +460,6 @@ const PriceBreakdown = ({ product }) => {
     );
   }
 
-  // Gold breakdown
   const netWeight = Number(product.netWeight) || 0;
   const metalPrice = Number(product.metalPrice) || 0;
   const makingCharges = Number(product.makingCharges) || 0;
@@ -414,44 +474,28 @@ const PriceBreakdown = ({ product }) => {
 
   return (
     <div className="mt-4">
-      <button
-        onClick={() => setOpenBreakdown(!openBreakdown)}
-        className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors"
-      >
+      <button onClick={() => setOpenBreakdown(!openBreakdown)}
+        className="w-full flex justify-between items-center border-t border-b py-4 hover:bg-gray-50 transition-colors">
         <span className="text-base sm:text-lg font-medium">Price Breakdown</span>
         <span className="text-xl sm:text-2xl">{openBreakdown ? "−" : "+"}</span>
       </button>
       {openBreakdown && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="overflow-hidden"
-        >
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
           <div className="py-6 space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium text-black mb-3">How we calculate the price:</h4>
               <p className="text-sm text-gray-600 mb-2">
-                Total Price = (Net Weight × Metal Price of{" "}
-                <strong>pure metal</strong> × Purity Multiplier) + Diamond Price + Making Charges (includes GST)
+                Total Price = (Net Weight × Metal Price of <strong>pure metal</strong> × Purity Multiplier) + Diamond Price + Making Charges (includes GST)
               </p>
-              <p className="text-xs text-gray-500">
-                <em>Purity Multiplier converts pure metal price (24K gold) to the actual product purity</em>
-              </p>
+              <p className="text-xs text-gray-500"><em>Purity Multiplier converts pure metal price (24K gold) to the actual product purity</em></p>
             </div>
-
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Component
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Calculation
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount ({currencyCode})
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calculation</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ({currencyCode})</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -460,17 +504,11 @@ const PriceBreakdown = ({ product }) => {
                       <div className="font-medium">Metal Cost</div>
                       <div className="text-xs text-gray-500">
                         {product.metal.charAt(0).toUpperCase() + product.metal.slice(1)} ({product.purity})
-                        <span className="block text-xs text-gray-400">
-                          Converted via Purity Multiplier ({purityMultiplier})
-                        </span>
+                        <span className="block text-xs text-gray-400">Converted via Purity Multiplier ({purityMultiplier})</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {netWeight}g × {sym}{conv(metalPrice)}/g × {purityMultiplier}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {sym}{conv(metalCostINR)}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{netWeight}g × {sym}{conv(metalPrice)}/g × {purityMultiplier}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{sym}{conv(metalCostINR)}</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm text-gray-900">
@@ -478,9 +516,7 @@ const PriceBreakdown = ({ product }) => {
                       <div className="text-xs text-gray-500">{diamondWeight} ct diamonds</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{diamondWeight} ct</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {sym}{conv(diamondPrice)}
-                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{sym}{conv(diamondPrice)}</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm text-gray-900">
@@ -488,47 +524,30 @@ const PriceBreakdown = ({ product }) => {
                       <div className="text-xs text-gray-500">Including 3% GST</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">Labour + Design + GST</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {sym}{conv(makingCharges)}
-                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{sym}{conv(makingCharges)}</td>
                   </tr>
                   <tr className="bg-gray-50">
                     <td colSpan="3" className="px-4 py-3 text-sm text-gray-600">
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-gray-500">Making Charges (before GST):</span>
-                          <span className="font-medium ml-1">{sym}{conv(makingWithoutGSTINR)}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">GST @3%:</span>
-                          <span className="font-medium ml-1">{sym}{conv(gstOnMakingINR)}</span>
-                        </div>
+                        <div><span className="text-gray-500">Making Charges (before GST):</span><span className="font-medium ml-1">{sym}{conv(makingWithoutGSTINR)}</span></div>
+                        <div><span className="text-gray-500">GST @3%:</span><span className="font-medium ml-1">{sym}{conv(gstOnMakingINR)}</span></div>
                       </div>
                     </td>
                   </tr>
                   <tr className="bg-gray-100">
-                    <td className="px-4 py-3">
-                      <div className="text-sm font-bold text-black">Final Price</div>
-                    </td>
+                    <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
                     <td className="px-4 py-3 text-sm text-gray-600">Metal Cost + Making Charges</td>
-                    <td className="px-4 py-3">
-                      <div className="text-lg font-bold text-black">
-                        {sym}{product.totalPrice?.toLocaleString()}
-                      </div>
-                    </td>
+                    <td className="px-4 py-3"><div className="text-lg font-bold text-black">{sym}{product.totalPrice?.toLocaleString()}</div></td>
                   </tr>
                 </tbody>
               </table>
             </div>
-
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <ul className="text-xs text-blue-700 space-y-1">
                 <li>• Metal price is based on current market rates (updated daily)</li>
                 <li>• Making charges include GST as per government regulations</li>
                 <li>• Hallmarking charges are included in making charges</li>
-                {!isINR && (
-                  <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>
-                )}
+                {!isINR && <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>}
               </ul>
             </div>
           </div>
@@ -653,44 +672,57 @@ const UpdatedReviewForm = ({ productId }) => {
 export default function ProductDetail() {
   const { slug } = useParams();
   const router = useRouter();
-  const { cart, addToCart, updateQuantity } = useCart();
   const { loginWithGoogle, getLoggedInUser } = useGoogleAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mainImage, setMainImage] = useState("");
-  const [showCheckoutPopup, setShowCheckoutPopup] = useState(false);
   const [openInfo, setOpenInfo] = useState(false);
   const [wishlist, setWishlist] = useState([]);
-  const [quantity, setQuantity] = useState(0);
   const [loginPrompt, setLoginPrompt] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");
   const [sizeError, setSizeError] = useState(false);
+  const [selectedDiamondType, setSelectedDiamondType] = useState("");
+  const [diamondTypeError, setDiamondTypeError] = useState(false);
 
-  const requiresSize = (category) => category === "rings" || category === "bangles";
-  // If category requires size and a size is selected → it's Make to Order
-  const isMakeToOrder = requiresSize(product?.category) && !!selectedSize;
+  // ── ALL products are MTO — no cart needed ──────────────────────────────────
+  // isMakeToOrder is always true for every product
+  const isMakeToOrder = true;
 
-  // Build WhatsApp URL for MTO orders
-  const mtoWhatsappUrl = product
-    ? `https://wa.me/916353974557?text=${encodeURIComponent(
-        `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*\nSize: ${selectedSize}\nPrice: ${product.currencySymbol || "₹"}${product.totalPrice?.toLocaleString()}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`
-      )}`
-    : "";
+  // Build WhatsApp MTO URL with size + diamond type
+  const buildMtoWhatsappUrl = () => {
+    if (!product) return "";
+    const hasDiamond = Number(product.diamondWeight) > 0;
+    const sizeText = requiresSize(product.category) && selectedSize ? `\nSize: ${selectedSize}` : "";
+    const diamondText = hasDiamond && selectedDiamondType
+      ? `\nDiamond Type: ${selectedDiamondType === "natural" ? "Natural Diamond" : "Lab Grown Diamond"}`
+      : "";
+    const message = `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*${sizeText}${diamondText}\nPrice: ${product.currencySymbol || "₹"}${product.totalPrice?.toLocaleString()}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`;
+    return `https://wa.me/916353974557?text=${encodeURIComponent(message)}`;
+  };
 
-  const validateSize = () => {
+  const mtoWhatsappUrl = buildMtoWhatsappUrl();
+
+  // Validation before WhatsApp redirect
+  const validateAndOrder = () => {
+    let valid = true;
     if (requiresSize(product?.category) && !selectedSize) {
       setSizeError(true);
       document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return false;
+      valid = false;
     }
-    setSizeError(false);
-    return true;
+    const hasDiamond = Number(product?.diamondWeight) > 0;
+    if (hasDiamond && !selectedDiamondType) {
+      setDiamondTypeError(true);
+      document.getElementById("diamond-type-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      valid = false;
+    }
+    return valid;
   };
 
-  // ── Fetch product with currency ──────────────────────────────────────────
+  // Fetch product
   const fetchProduct = async () => {
     try {
       setLoading(true);
@@ -709,11 +741,8 @@ export default function ProductDetail() {
     }
   };
 
-  useEffect(() => {
-    if (slug) fetchProduct();
-  }, [slug]);
+  useEffect(() => { if (slug) fetchProduct(); }, [slug]);
 
-  // Re-fetch when currency changes from navbar
   useEffect(() => {
     const handler = () => { if (slug) fetchProduct(); };
     window.addEventListener("currencyChange", handler);
@@ -723,8 +752,7 @@ export default function ProductDetail() {
   useEffect(() => {
     const cached = localStorage.getItem("wishlist");
     if (cached) { try { setWishlist(JSON.parse(cached).map(id => String(id))); } catch { } }
-    setQuantity(cart[slug]?.quantity || 0);
-  }, [cart, slug]);
+  }, [slug]);
 
   const handleShare = async () => {
     try {
@@ -748,64 +776,6 @@ export default function ProductDetail() {
       });
       if (!res.ok) { setWishlist(wishlist); localStorage.setItem("wishlist", JSON.stringify(wishlist)); }
     } catch { setWishlist(wishlist); localStorage.setItem("wishlist", JSON.stringify(wishlist)); }
-  };
-
-  // Cart always stores INR price
-  const buildCartItem = (p, price) => ({
-    id: p._id || slug, productName: p.productName, quantity: 1, price,
-    image: p.img1, metal: p.metal, purity: p.purity, weight: p.netWeight,
-    size: selectedSize || null, description: p.description, category: p.category,
-    grossWeight: p.grossWeight, makingCharges: p.makingCharges, metalPrice: p.metalPrice,
-    color: p.color, gender: p.gender, status: p.status,
-  });
-
-  const handleAddToCart = async () => {
-    if (!validateSize()) return;
-
-    // Block MTO items — redirect to WhatsApp
-    if (isMakeToOrder) {
-      window.dispatchEvent(new CustomEvent("highlight-whatsapp"));
-      return;
-    }
-
-    const user = getLoggedInUser();
-    if (!user?.email) {
-      try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } }
-      catch { setLoginPrompt(true); return; }
-    }
-    if (!product || quantity > 0) return;
-    // Use INR price for cart
-    addToCart(product._id || slug, buildCartItem(product, calculateTotalPriceINR(product)));
-    setQuantity(1);
-  };
-
-  const handleBuyNow = async () => {
-    if (!validateSize()) return;
-
-    // Block MTO items — redirect to WhatsApp
-    if (isMakeToOrder) {
-      window.dispatchEvent(new CustomEvent("highlight-whatsapp"));
-      return;
-    }
-
-    const user = getLoggedInUser();
-    if (!user?.email) {
-      try { await loginWithGoogle(); if (!getLoggedInUser()?.email) { setLoginPrompt(true); return; } }
-      catch { setLoginPrompt(true); return; }
-    }
-    if (!product) return;
-    if (quantity === 0) {
-      addToCart(product._id || slug, buildCartItem(product, calculateTotalPriceINR(product)));
-      setQuantity(1);
-    }
-    setTimeout(() => setShowCheckoutPopup(true), 100);
-  };
-
-  const increaseQuantity = () => { if (!product) return; updateQuantity(product._id || slug, quantity + 1); setQuantity(q => q + 1); };
-  const decreaseQuantity = () => {
-    if (!product) return; const id = product._id || slug;
-    if (quantity > 1) { updateQuantity(id, quantity - 1); setQuantity(q => q - 1); }
-    else { updateQuantity(id, 0); setQuantity(0); }
   };
 
   if (loading) return (
@@ -832,10 +802,15 @@ export default function ProductDetail() {
   const isSilver = product.metal === "silver";
   const allImages = [product.img1, product.img2, product.img3].filter(Boolean);
   const isInWishlist = wishlist.includes(String(slug));
-  // Use converted totalPrice from API for display
   const displayPrice = product.totalPrice ?? 0;
   const displaySymbol = product.currencySymbol || "₹";
   const productId = product._id || slug;
+  const hasDiamond = Number(product.diamondWeight) > 0;
+
+  // Determine if all required selections are made for WhatsApp
+  const sizeReady = !requiresSize(product.category) || !!selectedSize;
+  const diamondReady = !hasDiamond || !!selectedDiamondType;
+  const readyToOrder = sizeReady && diamondReady;
 
   return (
     <div className="bg-back min-h-screen ci px-2 sm:px-4">
@@ -891,15 +866,24 @@ export default function ProductDetail() {
 
         {/* ── DETAILS ── */}
         <div className="space-y-6 md:space-y-8 px-2 sm:px-0">
-          <span className="inline-block border border-black px-3 py-1.5 text-xs tracking-wide">
-            {product.category?.toUpperCase() || "JEWELRY"}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-block border border-black px-3 py-1.5 text-xs tracking-wide">
+              {product.category?.toUpperCase() || "JEWELRY"}
+            </span>
+            {/* Global MTO badge */}
+            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 text-xs font-semibold rounded-full">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              </svg>
+              Make to Order
+            </span>
+          </div>
 
           <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-medium text-black leading-tight">
             {product.productName}
           </h1>
 
-          {/* Price + Connect with Expert */}
+          {/* Price */}
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
@@ -936,66 +920,112 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* SIZE SELECTOR */}
-          <div id="size-selector">
-            <SizeSelector
-              category={product.category}
-              selectedSize={selectedSize}
-              onSelectSize={(size) => { setSelectedSize(size); setSizeError(false); }}
-              sizeError={sizeError}
-              whatsappUrl={mtoWhatsappUrl}
-            />
-          </div>
+          {/* SIZE SELECTOR — rings, bangles, bracelets */}
+          {requiresSize(product.category) && (
+            <div id="size-selector">
+              <SizeSelector
+                category={product.category}
+                selectedSize={selectedSize}
+                onSelectSize={(size) => { setSelectedSize(size); setSizeError(false); }}
+                sizeError={sizeError}
+                whatsappUrl={mtoWhatsappUrl}
+              />
+            </div>
+          )}
 
-          {/* ACTIONS */}
-          <div className="space-y-4">
-            {isMakeToOrder ? (
-              /* MTO: replace Add to Cart / Buy Now with WhatsApp order button */
-              <div className="space-y-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-center">
-                  <p className="text-sm text-amber-800 font-medium mb-1">Make to Order — Size {selectedSize}</p>
-                  <p className="text-xs text-amber-700">This item is crafted specifically for you. Place your order via WhatsApp.</p>
-                </div>
-                <Link href={mtoWhatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-[#25D366] text-white py-3 text-base sm:text-lg hover:bg-[#1ebe5d] transition-colors flex items-center justify-center gap-2 rounded-none"
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  Order on WhatsApp — Size {selectedSize}
-                </Link>
-                <button
-                  onClick={() => { setSelectedSize(""); }}
-                  className="w-full border border-gray-300 text-gray-600 py-2.5 text-sm hover:bg-gray-50 transition-colors"
-                >
-                  ← Choose a different size
-                </button>
+          {/* DIAMOND TYPE SELECTOR — shown for all products that have diamonds */}
+          {hasDiamond && (
+            <div id="diamond-type-selector">
+              <DiamondTypeSelector
+                selectedDiamondType={selectedDiamondType}
+                onSelectDiamondType={(type) => { setSelectedDiamondType(type); setDiamondTypeError(false); }}
+              />
+              {diamondTypeError && (
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                  className="text-sm text-red-500 flex items-center gap-1.5 mt-2">
+                  <span>⚠</span> Please select a diamond type before continuing.
+                </motion.p>
+              )}
+            </div>
+          )}
+
+          {/* ── ACTIONS — ALL products are MTO ── */}
+          <div className="space-y-3">
+            {/* Global MTO info box */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+              <p className="text-sm text-amber-800 font-medium mb-0.5">
+                ✦ All products are Made to Order
+              </p>
+              <p className="text-xs text-amber-700">
+                Every piece is crafted specifically for you. Place your order via WhatsApp and our team will guide you through the process.
+              </p>
+            </div>
+
+            {/* Incomplete selections warning */}
+            {(!sizeReady || !diamondReady) && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+                <p className="text-xs text-red-700 font-medium">
+                  Please complete your selection:
+                </p>
+                <ul className="text-xs text-red-600 mt-1 space-y-0.5">
+                  {!sizeReady && <li>• Select a {getSizeConfig(product.category)?.label?.toLowerCase()}</li>}
+                  {!diamondReady && <li>• Choose a diamond type (Natural or Lab Grown)</li>}
+                </ul>
               </div>
-            ) : quantity > 0 ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-center border border-black rounded-lg overflow-hidden max-w-xs mx-auto">
-                  <button onClick={decreaseQuantity} className="px-3 py-2.5 sm:px-4 sm:py-3 hover:bg-gray-100 transition-colors flex-1 text-center">−</button>
-                  <span className="px-4 py-2.5 sm:px-6 sm:py-3 border-x border-black flex-1 text-center font-medium">{quantity}</span>
-                  <button onClick={increaseQuantity} className="px-3 py-2.5 sm:px-4 sm:py-3 hover:bg-gray-100 transition-colors flex-1 text-center">+</button>
-                </div>
-                {selectedSize && (
-                  <p className="text-center text-xs text-gray-500">
-                    Size: <strong>{selectedSize}</strong>
-                    <button onClick={() => { setSelectedSize(""); setQuantity(0); updateQuantity(productId, 0); }}
-                      className="ml-2 text-red-400 hover:text-red-600 underline">Change</button>
+            )}
+
+            {/* Primary WhatsApp order button */}
+            <Link
+              href={readyToOrder ? mtoWhatsappUrl : "#"}
+              target={readyToOrder ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (!readyToOrder) {
+                  e.preventDefault();
+                  validateAndOrder();
+                }
+              }}
+              className={`w-full py-3.5 text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all duration-200 font-semibold ${
+                readyToOrder
+                  ? "bg-[#25D366] hover:bg-[#1ebe5d] text-white shadow-md shadow-green-200"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              {readyToOrder ? "Order on WhatsApp" : "Complete Selection to Order"}
+            </Link>
+
+            {/* Summary of selections (shown once ready) */}
+            {readyToOrder && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+              >
+                <p className="text-xs font-semibold text-gray-700 mb-1.5">Your order summary:</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-600">
+                    <span className="text-gray-400">Product:</span> {product.productName}
                   </p>
-                )}
-                <button onClick={handleBuyNow} className="w-full bg-black text-white py-3 text-base sm:text-lg hover:bg-gray-900 transition-colors">
-                  Proceed to Checkout
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button onClick={handleAddToCart} className="bg-white border-2 border-black text-black py-3 text-base sm:text-lg hover:bg-black hover:text-white transition-all">Add to Cart</button>
-                <button onClick={handleBuyNow} className="bg-black text-white py-3 text-base sm:text-lg hover:bg-gray-900 transition-colors">Buy Now</button>
-              </div>
+                  {selectedSize && (
+                    <p className="text-xs text-gray-600">
+                      <span className="text-gray-400">{getSizeConfig(product.category)?.label}:</span> {selectedSize}
+                    </p>
+                  )}
+                  {selectedDiamondType && (
+                    <p className="text-xs text-gray-600">
+                      <span className="text-gray-400">Diamond:</span>{" "}
+                      {selectedDiamondType === "natural" ? "💎 Natural Diamond" : "⚗️ Lab Grown Diamond"}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-600">
+                    <span className="text-gray-400">Price:</span>{" "}
+                    <span className="font-semibold text-black">{displaySymbol}{displayPrice.toLocaleString()}</span>
+                  </p>
+                </div>
+              </motion.div>
             )}
           </div>
 
@@ -1050,7 +1080,7 @@ export default function ProductDetail() {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-md p-6 md:p-8 relative">
             <button onClick={() => setLoginPrompt(false)} className="absolute top-4 right-4 text-gray-500 hover:text-black"><XMarkIcon className="w-6 h-6" /></button>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-6">Please login to add items to your cart or proceed to checkout.</p>
+            <p className="text-gray-600 mb-6">Please login to continue.</p>
             <button onClick={async () => { try { await loginWithGoogle(); setLoginPrompt(false); } catch { } }}
               className="w-full bg-black text-white py-3 md:py-4 flex items-center justify-center gap-3 hover:bg-gray-900 transition-colors">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -1061,19 +1091,6 @@ export default function ProductDetail() {
               </svg>
               Continue with Google
             </button>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Checkout popup */}
-      {showCheckoutPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
-            <button onClick={() => setShowCheckoutPopup(false)} className="absolute top-4 right-4 z-10 text-gray-500 hover:text-black"><XMarkIcon className="w-6 h-6" /></button>
-            <div className="p-6 md:p-8">
-              <h2 className="text-xl md:text-2xl font-bold mb-6">Checkout</h2>
-              <Checkout />
-            </div>
           </motion.div>
         </div>
       )}
