@@ -127,7 +127,7 @@ export default function Navbar() {
                                     onClick={() => setShowSearch(!showSearch)}
                                     className="hover:scale-110 transform transition p-1"
                                 >
-                                    <FiSearch className="w-5 h-5 text-black" />
+                                    {/* <FiSearch className="w-5 h-5 text-black" /> */}
                                 </button>
 
                                 <AnimatePresence>
@@ -176,14 +176,14 @@ export default function Navbar() {
       className="fixed inset-0 z-40 bg-white flex flex-col md:hidden"
     >
       {/* 📱 Search Bar – Properly Placed */}
-      <div className="w-full px-5 pt-6">
+      {/* <div className="w-full px-5 pt-6">
         <input
           type="text"
           placeholder="Search products..."
           className="w-full px-5 py-3 rounded-full border border-gray-300 shadow-sm
                      focus:outline-none focus:ring-1 focus:ring-black"
         />
-      </div>
+      </div> */}
 
       {/* 📱 Nav Links – KEEP EXACT PLACEMENT */}
       <motion.div
