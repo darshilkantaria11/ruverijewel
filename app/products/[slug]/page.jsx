@@ -950,7 +950,7 @@ export default function ProductDetail() {
           )}
 
           {/* DIAMOND TYPE SELECTOR — shown for all products that have diamonds */}
-         // After:
+         
 {hasDiamond && (
   <div id="diamond-type-selector">
     <DiamondTypeSelector
