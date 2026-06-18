@@ -106,6 +106,7 @@ const productSchema = new Schema(
         "earrings",
         "necklace",
         "mencollections",
+        "kidscollections",
         "pendents",
         "rings",
       ],

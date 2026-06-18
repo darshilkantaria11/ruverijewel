@@ -79,25 +79,35 @@ if (cat === "bracelets") return {
 };
 
 /* ---------- DIAMOND TYPE SELECTOR ---------- */
-const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType }) => {
-  const types = [
+// After:
+const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType, metal }) => {
+  const allTypes = [
     {
-      id: "natural",
-      label: "Natural Diamond",
-      icon: "💎",
-      desc: "Mined from the earth, each stone unique",
-      badge: "Classic",
-      badgeColor: "bg-amber-100 text-amber-800",
-    },
-    {
-      id: "lab_grown",
-      label: "Lab Grown Diamond",
-      icon: "⚗️",
-      desc: "Same chemical properties, eco-friendly",
-      badge: "Sustainable",
-      badgeColor: "bg-emerald-100 text-emerald-800",
-    },
+    id: "natural",
+    label: "Natural Diamond",
+    icon: "💎",
+    desc: "Mined from the earth, each stone unique",
+    badge: "Classic",
+    badgeColor: "bg-amber-100 text-amber-800",
+  },
+  {
+    id: "lab_grown",
+    label: "Lab Grown Diamond",
+    icon: "⚗️",
+    desc: "Same chemical properties, eco-friendly",
+    badge: "Sustainable",
+    badgeColor: "bg-emerald-100 text-emerald-800",
+  },
+  {
+    id: "moissanite",
+    label: "Moissanite",
+    icon: "✨",
+    desc: "Near-diamond brilliance, exceptional value",
+    badge: "Premium",
+    badgeColor: "bg-violet-100 text-violet-800",
+  },
   ];
+  const types = metal === "silver" ? allTypes : allTypes.filter(t => t.id !== "moissanite");
 
   return (
     <div className="space-y-2">
@@ -697,7 +707,13 @@ export default function ProductDetail() {
     const hasDiamond = Number(product.diamondWeight) > 0;
     const sizeText = requiresSize(product.category) && selectedSize ? `\nSize: ${selectedSize}` : "";
     const diamondText = hasDiamond && selectedDiamondType
-      ? `\nDiamond Type: ${selectedDiamondType === "natural" ? "Natural Diamond" : "Lab Grown Diamond"}`
+      ? `\nDiamond Type: ${
+  selectedDiamondType === "natural"
+    ? "Natural Diamond"
+    : selectedDiamondType === "lab_grown"
+    ? "Lab Grown Diamond"
+    : "Moissanite"
+}`
       : "";
     const message = `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*${sizeText}${diamondText}\nPrice: ${product.currencySymbol || "₹"}${product.totalPrice?.toLocaleString()}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`;
     return `https://wa.me/916353974557?text=${encodeURIComponent(message)}`;
@@ -934,12 +950,14 @@ export default function ProductDetail() {
           )}
 
           {/* DIAMOND TYPE SELECTOR — shown for all products that have diamonds */}
-          {hasDiamond && (
-            <div id="diamond-type-selector">
-              <DiamondTypeSelector
-                selectedDiamondType={selectedDiamondType}
-                onSelectDiamondType={(type) => { setSelectedDiamondType(type); setDiamondTypeError(false); }}
-              />
+         // After:
+{hasDiamond && (
+  <div id="diamond-type-selector">
+    <DiamondTypeSelector
+      selectedDiamondType={selectedDiamondType}
+      onSelectDiamondType={(type) => { setSelectedDiamondType(type); setDiamondTypeError(false); }}
+      metal={product.metal}
+    />
               {diamondTypeError && (
                 <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                   className="text-sm text-red-500 flex items-center gap-1.5 mt-2">
@@ -1017,7 +1035,11 @@ export default function ProductDetail() {
                   {selectedDiamondType && (
                     <p className="text-xs text-gray-600">
                       <span className="text-gray-400">Diamond:</span>{" "}
-                      {selectedDiamondType === "natural" ? "💎 Natural Diamond" : "⚗️ Lab Grown Diamond"}
+{selectedDiamondType === "natural"
+  ? "💎 Natural Diamond"
+  : selectedDiamondType === "lab_grown"
+  ? "⚗️ Lab Grown Diamond"
+  : "✨ Moissanite"}
                     </p>
                   )}
                   <p className="text-xs text-gray-600">
