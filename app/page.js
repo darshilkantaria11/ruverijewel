@@ -1,4 +1,5 @@
 import Home1 from "./nopage/home/home1";
+import Sale from "./nopage/home/home1a";
 import Home2 from "./nopage/home/home2";
 import Home3 from "./nopage/home/home3";
 import Home4 from "./nopage/home/home4";
@@ -55,7 +56,7 @@ import Home7 from "./nopage/home/home7";
 export default function Home() {
   return (
     <>
-
+      <Sale />
       <Home1 />
       <Home2 />
       <Home3 />

@@ -285,8 +285,8 @@ export default function Products({ category, title }) {
                       key={purity}
                       onClick={() => togglePurity(purity)}
                       className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${selectedPurities.includes(purity)
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:border-black"
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-black border-gray-300 hover:border-black"
                         }`}
                     >
                       {purity}
@@ -362,8 +362,8 @@ export default function Products({ category, title }) {
                     key={purity}
                     onClick={() => togglePurity(purity)}
                     className={`px-3 py-2 rounded-lg border transition-all duration-200 text-sm font-medium ${selectedPurities.includes(purity)
-                        ? "bg-black text-white border-black"
-                        : "bg-white text-black border-gray-300 hover:border-black"
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-gray-300 hover:border-black"
                       }`}
                   >
                     {purity}
@@ -455,10 +455,17 @@ export default function Products({ category, title }) {
                       />
                       <div className="py-4 px-1 text-start">
                         <h2 className="text-sm lg:text-lg font-semibold text-black">{product.productName}</h2>
-                        <div className="flex justify-start items-center">
-                          <p className="text-md lg:text-xl text-black font-semibold">
+                        <div className="flex justify-start items-center gap-2 flex-wrap">
+                          <p className="text-xs lg:text-sm text-gray-400 line-through">
                             {product.currencySymbol || "₹"}{(product.totalPrice ?? 0).toLocaleString()}
                           </p>
+                          <p className="text-md lg:text-xl text-black font-semibold">
+                            {product.currencySymbol || "₹"}
+                            {Math.round((product.totalPrice ?? 0) * 0.85).toLocaleString()}
+                          </p>
+                          <span className="text-[10px] lg:text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                            15% OFF
+                          </span>
                         </div>
                       </div>
                     </div>

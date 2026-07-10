@@ -9,6 +9,10 @@ import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
 import { useGoogleAuth } from "../../nopage/components/useGoogleAuth";
 import Link from "next/link";
 
+/* ---------- DISCOUNT CONFIG ---------- */
+const DISCOUNT_PERCENT = 15;
+const getDiscountedPrice = (price) => Math.round((Number(price) || 0) * (1 - DISCOUNT_PERCENT / 100));
+
 /* ---------- PRICE HELPERS (INR only — for breakdown) ---------- */
 const getPurityMultiplier = (metal, purity) => {
   const goldMap = { "24K": 1, "22K": 0.916, "20K": 0.833, "18K": 0.78, "14K": 0.615, "9K": 0.415 };
@@ -79,7 +83,6 @@ if (cat === "bracelets") return {
 };
 
 /* ---------- DIAMOND TYPE SELECTOR ---------- */
-// After:
 const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType, metal }) => {
   const allTypes = [
     {
@@ -423,6 +426,7 @@ const PriceBreakdown = ({ product }) => {
   if (isSilver) {
     const totalINR = Number(product.metalPrice) || 0;
     const displayTotal = isINR ? Math.ceil(totalINR) : product.totalPrice;
+    const discountedTotal = getDiscountedPrice(displayTotal);
     return (
       <div className="mt-4">
         <button onClick={() => setOpenBreakdown(!openBreakdown)}
@@ -451,7 +455,13 @@ const PriceBreakdown = ({ product }) => {
                     </tr>
                     <tr className="bg-gray-100">
                       <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
-                      <td className="px-4 py-3"><div className="text-lg font-bold text-black">{sym}{displayTotal?.toLocaleString()}</div></td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-gray-400 line-through">{sym}{displayTotal?.toLocaleString()}</span>
+                          <span className="text-lg font-bold text-black">{sym}{discountedTotal.toLocaleString()}</span>
+                          <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">{DISCOUNT_PERCENT}% OFF</span>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -460,6 +470,7 @@ const PriceBreakdown = ({ product }) => {
                 <ul className="text-xs text-blue-700 space-y-1">
                   <li>• Price includes all charges (making, GST, etc.)</li>
                   <li>• BIS Hallmarked — {product.purity} certified silver</li>
+                  <li>• {DISCOUNT_PERCENT}% discount applied to final price</li>
                   {!isINR && <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>}
                 </ul>
               </div>
@@ -481,6 +492,7 @@ const PriceBreakdown = ({ product }) => {
   const gstRate = 0.03;
   const gstOnMakingINR = makingCharges * gstRate;
   const makingWithoutGSTINR = makingCharges - gstOnMakingINR;
+  const discountedFinal = getDiscountedPrice(product.totalPrice);
 
   return (
     <div className="mt-4">
@@ -547,7 +559,13 @@ const PriceBreakdown = ({ product }) => {
                   <tr className="bg-gray-100">
                     <td className="px-4 py-3"><div className="text-sm font-bold text-black">Final Price</div></td>
                     <td className="px-4 py-3 text-sm text-gray-600">Metal Cost + Making Charges</td>
-                    <td className="px-4 py-3"><div className="text-lg font-bold text-black">{sym}{product.totalPrice?.toLocaleString()}</div></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-gray-400 line-through">{sym}{product.totalPrice?.toLocaleString()}</span>
+                        <span className="text-lg font-bold text-black">{sym}{discountedFinal.toLocaleString()}</span>
+                        <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">{DISCOUNT_PERCENT}% OFF</span>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -557,6 +575,7 @@ const PriceBreakdown = ({ product }) => {
                 <li>• Metal price is based on current market rates (updated daily)</li>
                 <li>• Making charges include GST as per government regulations</li>
                 <li>• Hallmarking charges are included in making charges</li>
+                <li>• {DISCOUNT_PERCENT}% discount applied to final price</li>
                 {!isINR && <li>• Prices shown in {currencyCode} — converted from INR at live rates</li>}
               </ul>
             </div>
@@ -701,7 +720,7 @@ export default function ProductDetail() {
   // isMakeToOrder is always true for every product
   const isMakeToOrder = true;
 
-  // Build WhatsApp MTO URL with size + diamond type
+  // Build WhatsApp MTO URL with size + diamond type + discounted price
   const buildMtoWhatsappUrl = () => {
     if (!product) return "";
     const hasDiamond = Number(product.diamondWeight) > 0;
@@ -715,7 +734,15 @@ export default function ProductDetail() {
     : "Moissanite"
 }`
       : "";
-    const message = `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*${sizeText}${diamondText}\nPrice: ${product.currencySymbol || "₹"}${product.totalPrice?.toLocaleString()}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`;
+
+    const sym = product.currencySymbol || "₹";
+    const originalPrice = product.totalPrice ?? 0;
+    const discountedPrice = getDiscountedPrice(originalPrice);
+
+    // WhatsApp uses ~text~ for strikethrough formatting
+    const priceText = `~${sym}${originalPrice.toLocaleString()}~ *${sym}${discountedPrice.toLocaleString()}* (${DISCOUNT_PERCENT}% OFF Applied)`;
+
+    const message = `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*${sizeText}${diamondText}\nPrice: ${priceText}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`;
     return `https://wa.me/916353974557?text=${encodeURIComponent(message)}`;
   };
 
@@ -819,6 +846,7 @@ export default function ProductDetail() {
   const allImages = [product.img1, product.img2, product.img3].filter(Boolean);
   const isInWishlist = wishlist.includes(String(slug));
   const displayPrice = product.totalPrice ?? 0;
+  const discountedDisplayPrice = getDiscountedPrice(displayPrice);
   const displaySymbol = product.currencySymbol || "₹";
   const productId = product._id || slug;
   const hasDiamond = Number(product.diamondWeight) > 0;
@@ -902,9 +930,15 @@ export default function ProductDetail() {
           {/* Price */}
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
+              <p className="text-sm sm:text-base md:text-lg text-gray-400 line-through">
                 {displaySymbol}{displayPrice.toLocaleString()}
               </p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
+                {displaySymbol}{discountedDisplayPrice.toLocaleString()}
+              </p>
+              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                {DISCOUNT_PERCENT}% OFF
+              </span>
               {product.currencyCode && product.currencyCode !== "INR" && (
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                   {product.currencyCode}
@@ -1042,9 +1076,11 @@ export default function ProductDetail() {
   : "✨ Moissanite"}
                     </p>
                   )}
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-gray-600 flex items-center gap-1.5 flex-wrap">
                     <span className="text-gray-400">Price:</span>{" "}
-                    <span className="font-semibold text-black">{displaySymbol}{displayPrice.toLocaleString()}</span>
+                    <span className="line-through text-gray-400">{displaySymbol}{displayPrice.toLocaleString()}</span>
+                    <span className="font-semibold text-black">{displaySymbol}{discountedDisplayPrice.toLocaleString()}</span>
+                    <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">{DISCOUNT_PERCENT}% OFF</span>
                   </p>
                 </div>
               </motion.div>
