@@ -13,6 +13,13 @@ import Link from "next/link";
 const DISCOUNT_PERCENT = 15;
 const getDiscountedPrice = (price) => Math.round((Number(price) || 0) * (1 - DISCOUNT_PERCENT / 100));
 
+/* ---------- MEDIA HELPERS (image vs video) ---------- */
+// img1 / img2 / img3 can each hold either an image URL or a video URL (e.g. .mp4).
+// This detects which one we're dealing with purely from the file extension, so
+// no backend/schema change is required — just drop a video URL into any img field.
+const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|m4v|ogv|ogg)(\?.*)?(#.*)?$/i;
+const isVideoFile = (url) => !!url && VIDEO_EXTENSIONS.test(url);
+
 /* ---------- PRICE HELPERS (INR only — for breakdown) ---------- */
 const getPurityMultiplier = (metal, purity) => {
   const goldMap = { "24K": 1, "22K": 0.916, "20K": 0.833, "18K": 0.78, "14K": 0.615, "9K": 0.415 };
@@ -850,6 +857,7 @@ export default function ProductDetail() {
   const displaySymbol = product.currencySymbol || "₹";
   const productId = product._id || slug;
   const hasDiamond = Number(product.diamondWeight) > 0;
+  const mainIsVideo = isVideoFile(mainImage);
 
   // Determine if all required selections are made for WhatsApp
   const sizeReady = !requiresSize(product.category) || !!selectedSize;
@@ -865,35 +873,85 @@ export default function ProductDetail() {
 
       <div className="max-w-7xl mx-auto py-8 md:py-12 grid lg:grid-cols-2 gap-6 md:gap-16 pt-4 md:pt-4">
 
-        {/* ── IMAGES ── */}
+        {/* ── IMAGES / VIDEO ── */}
         <div className="relative">
           <div className="hidden lg:grid grid-cols-[3fr_1fr] gap-6">
             <div className="relative group">
-              <img src={mainImage} alt={product.productName} className="w-full h-[520px] object-cover transition-transform duration-500 group-hover:scale-105" />
+              {mainIsVideo ? (
+                <video
+                  key={mainImage}
+                  src={mainImage}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-[520px] object-cover bg-black"
+                />
+              ) : (
+                <img src={mainImage} alt={product.productName} className="w-full h-[520px] object-cover transition-transform duration-500 group-hover:scale-105" />
+              )}
             </div>
             {allImages.length > 1 && (
               <div className="flex flex-col gap-4">
-                {allImages.map((img, i) => (
-                  <button key={i} onClick={() => setMainImage(img)}
-                    className={`h-[160px] overflow-hidden transition-all duration-300 ${mainImage === img ? 'ring-2 ring-black ring-offset-2' : 'opacity-80 hover:opacity-100'}`}>
-                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
-                  </button>
-                ))}
+                {allImages.map((media, i) => {
+                  const thumbIsVideo = isVideoFile(media);
+                  return (
+                    <button key={i} onClick={() => setMainImage(media)}
+                      className={`relative h-[160px] overflow-hidden transition-all duration-300 ${mainImage === media ? 'ring-2 ring-black ring-offset-2' : 'opacity-80 hover:opacity-100'}`}>
+                      {thumbIsVideo ? (
+                        <>
+                          <video src={media} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                            <svg className="w-8 h-8 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </span>
+                        </>
+                      ) : (
+                        <img src={media} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
           <div className="lg:hidden space-y-4">
             <div className="relative group">
-              <img src={mainImage} alt={product.productName} className="w-full h-[350px] sm:h-[400px] object-cover transition-transform duration-500 group-hover:scale-105 rounded-lg" />
+              {mainIsVideo ? (
+                <video
+                  key={mainImage}
+                  src={mainImage}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-[350px] sm:h-[400px] object-cover bg-black rounded-lg"
+                />
+              ) : (
+                <img src={mainImage} alt={product.productName} className="w-full h-[350px] sm:h-[400px] object-cover transition-transform duration-500 group-hover:scale-105 rounded-lg" />
+              )}
             </div>
             {allImages.length > 1 && (
               <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 px-1">
-                {allImages.map((img, i) => (
-                  <button key={i} onClick={() => setMainImage(img)}
-                    className={`flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 overflow-hidden transition-all duration-300 rounded-md ${mainImage === img ? 'ring-2 ring-black ring-offset-1' : 'opacity-80 hover:opacity-100'}`}>
-                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
-                  </button>
-                ))}
+                {allImages.map((media, i) => {
+                  const thumbIsVideo = isVideoFile(media);
+                  return (
+                    <button key={i} onClick={() => setMainImage(media)}
+                      className={`relative flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 overflow-hidden transition-all duration-300 rounded-md ${mainImage === media ? 'ring-2 ring-black ring-offset-1' : 'opacity-80 hover:opacity-100'}`}>
+                      {thumbIsVideo ? (
+                        <>
+                          <video src={media} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </span>
+                        </>
+                      ) : (
+                        <img src={media} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

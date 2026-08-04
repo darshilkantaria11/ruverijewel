@@ -13,7 +13,7 @@ const Skeleton = ({ className }) => (
 
 const ProductSkeleton = () => (
   <div className="overflow-hidden">
-    <Skeleton className="w-full md:h-72 h-52" />
+    <Skeleton className="w-full aspect-square" />
     <div className="py-4 px-1 space-y-2">
       <Skeleton className="h-5 w-3/4" />
       <Skeleton className="h-6 w-1/2" />
@@ -47,11 +47,13 @@ const CachedImage = ({ src, alt, className }) => {
   );
 };
 
+// Square container on every screen size — width drives the height via
+// aspect-square, so square source images are shown in full with no crop.
 const HoverImageContainer = ({ img1, img2, alt }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <div
-      className="relative w-full md:h-72 h-52 overflow-hidden"
+      className="relative w-full aspect-square overflow-hidden"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
