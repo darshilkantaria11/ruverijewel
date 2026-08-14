@@ -442,7 +442,7 @@ export default function CartPage() {
                 Order on WhatsApp
               </motion.a>
 
-              <p className="text-center text-xs text-gray-500 mt-3">You'll be redirected to WhatsApp to confirm your order</p>
+              <p className="text-center text-xs text-gray-500 mt-3">You&apos;ll be redirected to WhatsApp to confirm your order</p>
             </div>
           </div>
 
