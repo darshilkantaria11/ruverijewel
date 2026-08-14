@@ -73,6 +73,39 @@ const HoverImageContainer = ({ img1, img2, alt }) => {
   );
 };
 
+// ─── Filter persistence helpers ─────────────────────────────────────────────
+// Filters are saved to sessionStorage keyed by category, so navigating to a
+// product detail page and hitting back restores exactly what was selected —
+// they clear naturally when the tab is closed.
+const getFilterStorageKey = (category) => `ruveri_product_filters_${category}`;
+
+const loadSavedFilters = (category) => {
+  if (typeof window === "undefined") return { purities: [], sort: null };
+  try {
+    const raw = sessionStorage.getItem(getFilterStorageKey(category));
+    if (!raw) return { purities: [], sort: null };
+    const parsed = JSON.parse(raw);
+    return {
+      purities: Array.isArray(parsed.purities) ? parsed.purities : [],
+      sort: parsed.sort ?? null,
+    };
+  } catch {
+    return { purities: [], sort: null };
+  }
+};
+
+const saveFilters = (category, purities, sort) => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      getFilterStorageKey(category),
+      JSON.stringify({ purities, sort })
+    );
+  } catch {
+    // sessionStorage unavailable (private mode, etc.) — fail silently
+  }
+};
+
 export default function Products({ category, title }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,16 +114,36 @@ export default function Products({ category, title }) {
 
   const limit = 26;
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState(null);
   const filterRef = useRef(null);
 
   const { loginWithGoogle, getLoggedInUser } = useGoogleAuth();
 
-  const [selectedPurities, setSelectedPurities] = useState([]);
+  // Initialize from sessionStorage (if this category has saved filters) so a
+  // fresh mount — e.g. coming back from a product detail page — restores them.
+  const [selectedFilter, setSelectedFilter] = useState(() => loadSavedFilters(category).sort);
+  const [selectedPurities, setSelectedPurities] = useState(() => loadSavedFilters(category).purities);
+
   const [wishlist, setWishlist] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
 
   const purityOptions = ["9K", "14K", "18K", "925 Silver"];
+
+  // Re-sync filters whenever the category itself changes (component instance
+  // reused across category pages), since the lazy useState initializer above
+  // only runs once per mount.
+  const prevCategoryRef = useRef(category);
+  useEffect(() => {
+    if (prevCategoryRef.current === category) return;
+    prevCategoryRef.current = category;
+    const saved = loadSavedFilters(category);
+    setSelectedPurities(saved.purities);
+    setSelectedFilter(saved.sort);
+  }, [category]);
+
+  // Persist filters any time they change, per category.
+  useEffect(() => {
+    saveFilters(category, selectedPurities, selectedFilter);
+  }, [category, selectedPurities, selectedFilter]);
 
   // ─── Active purity sent to API ─────────────────────────────────────────────
   // This is the key fix: purity filtering is done by the API/database,

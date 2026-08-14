@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "../../nopage/context/CartContext";
 import Checkout from "../../nopage/checkout/checkout";
-import { XMarkIcon, HeartIcon as HeartOutline, ShareIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, HeartIcon as HeartOutline, ShareIcon, ShoppingBagIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
 import { useGoogleAuth } from "../../nopage/components/useGoogleAuth";
 import Link from "next/link";
@@ -709,6 +709,7 @@ export default function ProductDetail() {
   const { slug } = useParams();
   const router = useRouter();
   const { loginWithGoogle, getLoggedInUser } = useGoogleAuth();
+  const { cart, addToCart, getShippingParams } = useCart();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -722,6 +723,7 @@ export default function ProductDetail() {
   const [sizeError, setSizeError] = useState(false);
   const [selectedDiamondType, setSelectedDiamondType] = useState("");
   const [diamondTypeError, setDiamondTypeError] = useState(false);
+  const [justAddedToCart, setJustAddedToCart] = useState(false);
 
   // ── ALL products are MTO — no cart needed ──────────────────────────────────
   // isMakeToOrder is always true for every product
@@ -755,7 +757,7 @@ export default function ProductDetail() {
 
   const mtoWhatsappUrl = buildMtoWhatsappUrl();
 
-  // Validation before WhatsApp redirect
+  // Validation before WhatsApp redirect / Add to Cart
   const validateAndOrder = () => {
     let valid = true;
     if (requiresSize(product?.category) && !selectedSize) {
@@ -804,6 +806,12 @@ export default function ProductDetail() {
     if (cached) { try { setWishlist(JSON.parse(cached).map(id => String(id))); } catch { } }
   }, [slug]);
 
+  // Reset the "just added" confirmation state whenever the product itself,
+  // or the size/diamond selection, changes.
+  useEffect(() => {
+    setJustAddedToCart(false);
+  }, [slug, selectedSize, selectedDiamondType]);
+
   const handleShare = async () => {
     try {
       if (navigator.share) await navigator.share({ title: product?.productName, url: window.location.href });
@@ -826,6 +834,32 @@ export default function ProductDetail() {
       });
       if (!res.ok) { setWishlist(wishlist); localStorage.setItem("wishlist", JSON.stringify(wishlist)); }
     } catch { setWishlist(wishlist); localStorage.setItem("wishlist", JSON.stringify(wishlist)); }
+  };
+
+  // ── Add to Cart ─────────────────────────────────────────────────────────
+  // Re-enables the existing CartContext for this page. Requires the same
+  // selections (size / diamond type) as the WhatsApp flow before adding.
+  const handleAddToCart = () => {
+    if (!product) return;
+    if (!readyToOrder) {
+      validateAndOrder();
+      return;
+    }
+    const productId = product._id || slug;
+    addToCart(productId, {
+      productName: product.productName,
+      price: getDiscountedPrice(product.totalPrice ?? 0),
+      originalPrice: product.totalPrice ?? 0,
+      image: product.img1,
+      category: product.category,
+      metal: product.metal,
+      purity: product.purity,
+      size: selectedSize || null,
+      diamondType: selectedDiamondType || null,
+      weight: product.grossWeight,
+      dimensions: getShippingParams(),
+    });
+    setJustAddedToCart(true);
   };
 
   if (loading) return (
@@ -859,10 +893,12 @@ export default function ProductDetail() {
   const hasDiamond = Number(product.diamondWeight) > 0;
   const mainIsVideo = isVideoFile(mainImage);
 
-  // Determine if all required selections are made for WhatsApp
+  // Determine if all required selections are made for WhatsApp / Add to Cart
   const sizeReady = !requiresSize(product.category) || !!selectedSize;
   const diamondReady = !hasDiamond || !!selectedDiamondType;
   const readyToOrder = sizeReady && diamondReady;
+
+  const isInCart = !!cart?.[productId];
 
   return (
     <div className="bg-back min-h-screen ci px-2 sm:px-4">
@@ -1082,6 +1118,35 @@ export default function ProductDetail() {
                   {!diamondReady && <li>• Choose a diamond type (Natural or Lab Grown)</li>}
                 </ul>
               </div>
+            )}
+
+            {/* Add to Cart button — sits above the WhatsApp order button */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isInCart}
+              className={`w-full py-3.5 text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all duration-200 font-semibold border-2 rounded-lg ${
+                isInCart
+                  ? "border-green-600 bg-green-50 text-green-700 cursor-default"
+                  : readyToOrder
+                    ? "border-black text-black hover:bg-black hover:text-white"
+                    : "border-gray-300 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              {isInCart ? (
+                <>
+                  <CheckIcon className="w-5 h-5 flex-shrink-0" />
+                  Added to Cart
+                </>
+              ) : (
+                <>
+                  <ShoppingBagIcon className="w-5 h-5 flex-shrink-0" />
+                  Add to Cart
+                </>
+              )}
+            </button>
+            {justAddedToCart && !isInCart && (
+              <p className="text-xs text-green-700 -mt-1">✓ Added to your cart</p>
             )}
 
             {/* Primary WhatsApp order button */}
