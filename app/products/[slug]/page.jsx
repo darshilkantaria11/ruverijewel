@@ -143,7 +143,7 @@ const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType, metal }
                 {type.badge}
               </span>
 
-              <span className="text-xl leading-none">{type.icon}</span>
+              {/* <span className="text-xl leading-none">{type.icon}</span> */}
               <span className={`text-sm font-semibold leading-tight ${isSelected ? "text-white" : "text-gray-900"}`}>
                 {type.label}
               </span>

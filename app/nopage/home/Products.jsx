@@ -157,7 +157,7 @@ export default function Products({ category, title }) {
     const isPriceSort = selectedFilter === "price_low_high" || selectedFilter === "price_high_low";
     if (selectedPurities.length > 0) return selectedPurities.join(",");
     if (isPriceSort) return ""; // all purities — let price sort work across them
-    return "14K";               // default: only show 14K
+    return "925 Silver";               // default: only show 14K
   }, [selectedPurities, selectedFilter]);
 
   const togglePurity = (purity) => {

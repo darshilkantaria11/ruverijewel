@@ -18,7 +18,7 @@ export default function Navbar() {
         { href: "/chains", label: "CHAINS" },
         { href: "/earrings", label: "EARRINGS" },
         { href: "/necklace", label: "NECKLACE" },
-        { href: "/pendents", label: "PENDENTS" },
+        { href: "/pendents", label: "PENDANTS" },
         { href: "/mencollections", label: "MEN COLLECTION" },
         { href: "/kidscollections", label: "KIDS COLLECTION" },
     ];
