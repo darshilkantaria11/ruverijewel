@@ -92,14 +92,14 @@ if (cat === "bracelets") return {
 /* ---------- DIAMOND TYPE SELECTOR ---------- */
 const DiamondTypeSelector = ({ selectedDiamondType, onSelectDiamondType, metal }) => {
   const allTypes = [
-    {
-    id: "natural",
-    label: "Natural Diamond",
-    icon: "💎",
-    desc: "Mined from the earth, each stone unique",
-    badge: "Classic",
-    badgeColor: "bg-amber-100 text-amber-800",
-  },
+  //   {
+  //   id: "natural",
+  //   label: "Natural Diamond",
+  //   icon: "💎",
+  //   desc: "Mined from the earth, each stone unique",
+  //   badge: "Classic",
+  //   badgeColor: "bg-amber-100 text-amber-800",
+  // },
   {
     id: "lab_grown",
     label: "Lab Grown Diamond",
