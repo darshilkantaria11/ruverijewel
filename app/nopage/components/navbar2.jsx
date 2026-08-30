@@ -15,12 +15,12 @@ export default function Navbar() {
         { href: "/rings", label: "RINGS" },
         { href: "/bangles", label: "BANGLES" },
         { href: "/bracelets", label: "BRACELETS" },
-        { href: "/chains", label: "CHAINS" },
         { href: "/earrings", label: "EARRINGS" },
         { href: "/necklace", label: "NECKLACE" },
         { href: "/pendents", label: "PENDANTS" },
         { href: "/mencollections", label: "MEN COLLECTION" },
         { href: "/kidscollections", label: "KIDS COLLECTION" },
+        { href: "/spiritual", label: "SPIRITUAL" },
     ];
 
     /* 🔹 Animation Variants */
@@ -105,7 +105,7 @@ export default function Navbar() {
                                 variants={desktopContainer}
                                 initial="hidden"
                                 animate="show"
-                                className="flex items-center space-x-16"
+                                className="flex items-center space-x-14"
                             >
                                 {navLinks.map((item) => (
                                     <motion.div key={item.href} variants={desktopItem}>

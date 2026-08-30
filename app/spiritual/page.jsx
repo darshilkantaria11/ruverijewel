@@ -52,7 +52,7 @@ export const metadata = {
 export default function Home() {
   return (
     <>
-      <Products category="chains" title="Chains" />
+      <Products category="spiritual" title="Spiritual" />
     </>
   );
 }

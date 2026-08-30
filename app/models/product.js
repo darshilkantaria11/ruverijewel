@@ -102,7 +102,7 @@ const productSchema = new Schema(
       enum: [
         "bangles",
         "bracelets",
-        "chains",
+        "spiritual",
         "earrings",
         "necklace",
         "mencollections",
