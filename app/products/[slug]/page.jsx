@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Script from "next/script";
 import { useCart } from "../../nopage/context/CartContext";
 import Checkout from "../../nopage/checkout/checkout";
 import { XMarkIcon, HeartIcon as HeartOutline, ShareIcon, ShoppingBagIcon, CheckIcon } from "@heroicons/react/24/outline";
@@ -270,6 +271,11 @@ const SizeSelector = ({ category, selectedSize, onSelectSize, sizeError, whatsap
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => {
+                      if (typeof window !== "undefined" && window.gtag_report_conversion) {
+                        window.gtag_report_conversion();
+                      }
+                    }}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                       highlightWhatsapp
                         ? "bg-[#25D366] text-white shadow-lg shadow-green-200 scale-105"
@@ -839,6 +845,8 @@ export default function ProductDetail() {
   // ── Add to Cart ─────────────────────────────────────────────────────────
   // Re-enables the existing CartContext for this page. Requires the same
   // selections (size / diamond type) as the WhatsApp flow before adding.
+  // Fires the Google Ads "Submit lead form" conversion once the item is
+  // actually added (not on validation failures / disabled clicks).
   const handleAddToCart = () => {
     if (!product) return;
     if (!readyToOrder) {
@@ -860,6 +868,12 @@ export default function ProductDetail() {
       dimensions: getShippingParams(),
     });
     setJustAddedToCart(true);
+
+    // Google Ads conversion tracking — fires without a redirect URL since
+    // Add to Cart doesn't navigate anywhere.
+    if (typeof window !== "undefined" && window.gtag_report_conversion) {
+      window.gtag_report_conversion();
+    }
   };
 
   if (loading) return (
@@ -902,6 +916,31 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-back min-h-screen ci px-2 sm:px-4">
+      {/* ── Google Ads conversion tracking snippet ──────────────────────── */}
+      <Script id="google-ads-conversion" strategy="afterInteractive">
+        {`
+          function gtag_report_conversion(url) {
+            var callback = function () {
+              if (typeof(url) != 'undefined') {
+                window.location = url;
+              }
+            };
+            if (typeof gtag === 'function') {
+              gtag('event', 'conversion', {
+                  'send_to': 'AW-17274749876/Aqu7CKLWs-0aELSHn61A',
+                  'value': 1.0,
+                  'currency': 'INR',
+                  'event_callback': callback
+              });
+            } else if (typeof callback === 'function') {
+              callback();
+            }
+            return false;
+          }
+          window.gtag_report_conversion = gtag_report_conversion;
+        `}
+      </Script>
+
       <button onClick={() => router.back()}
         className="fixed top-4 left-2 sm:top-6 sm:left-4 z-10 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-black text-sm hover:bg-white transition-colors shadow-lg rounded-lg">
         ← Back
@@ -1158,6 +1197,13 @@ export default function ProductDetail() {
                 if (!readyToOrder) {
                   e.preventDefault();
                   validateAndOrder();
+                  return;
+                }
+                // Google Ads conversion tracking — fires alongside the
+                // native navigation to the WhatsApp link (no url passed,
+                // so the callback doesn't try to redirect on top of it).
+                if (typeof window !== "undefined" && window.gtag_report_conversion) {
+                  window.gtag_report_conversion();
                 }
               }}
               className={`w-full py-3.5 text-base sm:text-lg flex items-center justify-center gap-2.5 transition-all duration-200 font-semibold ${
