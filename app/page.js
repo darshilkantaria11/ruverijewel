@@ -56,7 +56,7 @@ import Home7 from "./nopage/home/home7";
 export default function Home() {
   return (
     <>
-      <Sale />
+      {/* <Sale /> */}
       <Home1 />
       <Home2 />
       <Home3 />

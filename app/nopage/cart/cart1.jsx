@@ -6,10 +6,6 @@ import Link from "next/link";
 import { XMarkIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
-/* ---------- DISCOUNT CONFIG (same as product detail page) ---------- */
-const DISCOUNT_PERCENT = 15;
-const getDiscountedPrice = (price) => Math.round((Number(price) || 0) * (1 - DISCOUNT_PERCENT / 100));
-
 /* ---------- WhatsApp number (same as product detail page) ---------- */
 const WHATSAPP_NUMBER = "916353974557";
 
@@ -76,20 +72,13 @@ export default function CartPage() {
       ? Math.ceil(amount).toLocaleString()
       : (Math.round(amount * 100) / 100).toLocaleString();
 
-  // ── Original (pre-discount) subtotal, using CONVERTED prices from API ───
-  const originalSubtotal = cartItems.reduce((sum, item) => {
+  // ── Subtotal, using CONVERTED prices from API ────────────────────────────
+  const subtotal = cartItems.reduce((sum, item) => {
     const convertedPrice = products[item.id]?.totalPrice ?? item.price;
     return sum + convertedPrice * item.quantity;
   }, 0);
 
-  // ── Discounted subtotal (what the customer actually pays) ───────────────
-  const discountedSubtotal = cartItems.reduce((sum, item) => {
-    const convertedPrice = products[item.id]?.totalPrice ?? item.price;
-    return sum + getDiscountedPrice(convertedPrice) * item.quantity;
-  }, 0);
-
-  const formattedOriginalSubtotal = formatPrice(originalSubtotal, currencyCode);
-  const formattedDiscountedSubtotal = formatPrice(discountedSubtotal, currencyCode);
+  const formattedSubtotal = formatPrice(subtotal, currencyCode);
 
   // ── Build a single WhatsApp message listing every item in the cart ──────
   const buildCartWhatsappUrl = () => {
@@ -99,9 +88,7 @@ export default function CartPage() {
       const sym = productData?.currencySymbol || "₹";
       const code = productData?.currencyCode || "INR";
       const unitPrice = productData?.totalPrice ?? item.price;
-      const discountedUnit = getDiscountedPrice(unitPrice);
-      const lineOriginal = unitPrice * item.quantity;
-      const lineDiscounted = discountedUnit * item.quantity;
+      const lineTotal = unitPrice * item.quantity;
 
       const sizeText = item.size ? `\n  Size: ${item.size}` : "";
       const diamondText = item.diamondType
@@ -113,17 +100,15 @@ export default function CartPage() {
               : "Moissanite"
           }`
         : "";
-      const priceText = `~${sym}${formatPrice(lineOriginal, code)}~ *${sym}${formatPrice(lineDiscounted, code)}* (${DISCOUNT_PERCENT}% OFF)`;
+      const priceText = `${sym}${formatPrice(lineTotal, code)}`;
 
       return `${idx + 1}. *${name}*${item.quantity > 1 ? ` ×${item.quantity}` : ""}${sizeText}${diamondText}\n  Price: ${priceText}`;
     });
 
-    const totalText = `~${currencySymbol}${formattedOriginalSubtotal}~ *${currencySymbol}${formattedDiscountedSubtotal}* (${DISCOUNT_PERCENT}% OFF Applied)`;
-
     const message =
       `Hi! I'd like to place an order for the following items:\n\n` +
       lines.join("\n\n") +
-      `\n\n*Estimated Total:* ${totalText}\n\n` +
+      `\n\n*Estimated Total:* ${currencySymbol}${formattedSubtotal}\n\n` +
       `${typeof window !== "undefined" ? window.location.href : ""}\n\n` +
       `Please help me proceed with checkout.`;
 
@@ -171,15 +156,10 @@ export default function CartPage() {
                 const sym = productData?.currencySymbol || "₹";
                 const code = productData?.currencyCode || "INR";
                 const unitPrice = productData?.totalPrice ?? item.price;
-                const discountedUnit = getDiscountedPrice(unitPrice);
+                const lineTotal = unitPrice * item.quantity;
 
-                const lineOriginal = unitPrice * item.quantity;
-                const lineDiscounted = discountedUnit * item.quantity;
-
-                const formattedLineOriginal = formatPrice(lineOriginal, code);
-                const formattedLineDiscounted = formatPrice(lineDiscounted, code);
-                const formattedUnitOriginal = formatPrice(unitPrice, code);
-                const formattedUnitDiscounted = formatPrice(discountedUnit, code);
+                const formattedLineTotal = formatPrice(lineTotal, code);
+                const formattedUnitPrice = formatPrice(unitPrice, code);
 
                 return (
                   <div key={item.id} className="relative bg-white rounded-xl shadow-sm p-4">
@@ -238,20 +218,12 @@ export default function CartPage() {
                             <Skeleton className="h-6 w-20" />
                           ) : (
                             <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm text-gray-400 line-through">
-                                  {sym}{formattedLineOriginal}
-                                </p>
-                                <p className="text-xl font-bold text-black">
-                                  {sym}{formattedLineDiscounted}
-                                </p>
-                                <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                                  {DISCOUNT_PERCENT}% OFF
-                                </span>
-                              </div>
+                              <p className="text-xl font-bold text-black">
+                                {sym}{formattedLineTotal}
+                              </p>
                               {item.quantity > 1 && (
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                  {sym}{formattedUnitDiscounted} each (was {sym}{formattedUnitOriginal})
+                                  {sym}{formattedUnitPrice} each
                                 </p>
                               )}
                             </div>
@@ -322,20 +294,12 @@ export default function CartPage() {
                             <Skeleton className="h-6 w-20" />
                           ) : (
                             <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm text-gray-400 line-through">
-                                  {sym}{formattedLineOriginal}
-                                </p>
-                                <p className="text-xl font-bold text-black">
-                                  {sym}{formattedLineDiscounted}
-                                </p>
-                                <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                                  {DISCOUNT_PERCENT}% OFF
-                                </span>
-                              </div>
+                              <p className="text-xl font-bold text-black">
+                                {sym}{formattedLineTotal}
+                              </p>
                               {item.quantity > 1 && (
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                  {sym}{formattedUnitDiscounted} each (was {sym}{formattedUnitOriginal})
+                                  {sym}{formattedUnitPrice} each
                                 </p>
                               )}
                             </div>
@@ -368,9 +332,8 @@ export default function CartPage() {
                   const sym = productData?.currencySymbol || "₹";
                   const code = productData?.currencyCode || "INR";
                   const unitPrice = productData?.totalPrice ?? item.price;
-                  const discountedUnit = getDiscountedPrice(unitPrice);
-                  const lineDiscounted = discountedUnit * item.quantity;
-                  const formatted = formatPrice(lineDiscounted, code);
+                  const lineTotal = unitPrice * item.quantity;
+                  const formatted = formatPrice(lineTotal, code);
 
                   return (
                     <div key={item.id} className="flex justify-between text-sm text-gray-600">
@@ -395,28 +358,10 @@ export default function CartPage() {
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-800">Estimated Total</span>
-                    <div className="text-right">
-                      {loading ? (
-                        "..."
-                      ) : (
-                        <div className="flex items-center gap-2 justify-end flex-wrap">
-                          <span className="text-sm text-gray-400 line-through">
-                            {currencySymbol}{formattedOriginalSubtotal}
-                          </span>
-                          <span className="text-lg font-bold text-gray-800">
-                            {currencySymbol}{formattedDiscountedSubtotal}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-lg font-bold text-gray-800">
+                      {loading ? "..." : `${currencySymbol}${formattedSubtotal}`}
+                    </span>
                   </div>
-                  {!loading && (
-                    <div className="flex justify-end mt-1">
-                      <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                        {DISCOUNT_PERCENT}% OFF Applied
-                      </span>
-                    </div>
-                  )}
                   {currencyCode !== "INR" && (
                     <p className="text-xs text-blue-600 mt-1">
                       Displayed in {currencyCode} · Checkout processed in INR

@@ -11,7 +11,7 @@ import { useGoogleAuth } from "../../nopage/components/useGoogleAuth";
 import Link from "next/link";
 
 /* ---------- DISCOUNT CONFIG ---------- */
-const DISCOUNT_PERCENT = 15;
+const DISCOUNT_PERCENT = 0;
 const getDiscountedPrice = (price) => Math.round((Number(price) || 0) * (1 - DISCOUNT_PERCENT / 100));
 
 /* ---------- MEDIA HELPERS (image vs video) ---------- */
@@ -755,7 +755,7 @@ export default function ProductDetail() {
     const discountedPrice = getDiscountedPrice(originalPrice);
 
     // WhatsApp uses ~text~ for strikethrough formatting
-    const priceText = `~${sym}${originalPrice.toLocaleString()}~ *${sym}${discountedPrice.toLocaleString()}* (${DISCOUNT_PERCENT}% OFF Applied)`;
+    const priceText = `${sym}${originalPrice.toLocaleString()}`;
 
     const message = `Hi! I'd like to place a Make to Order for:\n\n*${product.productName}*${sizeText}${diamondText}\nPrice: ${priceText}\n${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease help me proceed.`;
     return `https://wa.me/916353974557?text=${encodeURIComponent(message)}`;
@@ -1063,15 +1063,15 @@ export default function ProductDetail() {
           {/* Price */}
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm sm:text-base md:text-lg text-gray-400 line-through">
+              {/* <p className="text-sm sm:text-base md:text-lg text-gray-400 line-through">
                 {displaySymbol}{displayPrice.toLocaleString()}
-              </p>
+              </p> */}
               <p className="text-xl sm:text-2xl md:text-3xl font-medium text-black">
                 {displaySymbol}{discountedDisplayPrice.toLocaleString()}
               </p>
-              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              {/* <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
                 {DISCOUNT_PERCENT}% OFF
-              </span>
+              </span> */}
               {product.currencyCode && product.currencyCode !== "INR" && (
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                   {product.currencyCode}
@@ -1247,9 +1247,9 @@ export default function ProductDetail() {
                   )}
                   <p className="text-xs text-gray-600 flex items-center gap-1.5 flex-wrap">
                     <span className="text-gray-400">Price:</span>{" "}
-                    <span className="line-through text-gray-400">{displaySymbol}{displayPrice.toLocaleString()}</span>
+                    {/* <span className="line-through text-gray-400">{displaySymbol}{displayPrice.toLocaleString()}</span> */}
                     <span className="font-semibold text-black">{displaySymbol}{discountedDisplayPrice.toLocaleString()}</span>
-                    <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">{DISCOUNT_PERCENT}% OFF</span>
+                    {/* <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">{DISCOUNT_PERCENT}% OFF</span> */}
                   </p>
                 </div>
               </motion.div>
